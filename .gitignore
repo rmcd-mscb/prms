@@ -8,6 +8,8 @@ old/
 .idea/
 .vscode/
 _build/
+pipestem/
+delaware_river/
 *.zip
 *.mod
 *.swp
