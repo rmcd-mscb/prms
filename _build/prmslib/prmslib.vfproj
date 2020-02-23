@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeStaticLibrary" ProjectCreator="Intel Fortran" Keyword="Static Library" Version="11.0" ProjectIdGuid="{924C0121-A2F1-330B-9700-CD1513A5D37E}">
+	<Platforms>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|x64" OutputDirectory="B:\gitbmi\prms\_build\prmslib\Debug" IntermediateDirectory="prmslib.dir\Debug" TargetName="prmslib" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/W1 -heap-arrays1024 -CB -Qfp-stack-check -Qmkl -warn:all -warn:nounused" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\_build\prmslib/$(ConfigurationName);B:\gitbmi\prms\src\prmslib;B:\gitbmi\prms\src\prmslib/$(ConfigurationName);B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\include/$(ConfigurationName);B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\lib/$(ConfigurationName);B:\BuildNetcdf\install\include\coretran;B:\BuildNetcdf\install\include\coretran/$(ConfigurationName)" PreprocessorDefinitions="CMAKE_INTDIR=\&quot;Debug\&quot;" ModulePath=".\$(ConfigurationName)" Traceback="true" RuntimeLibrary="rtMultiThreadedDebugDLL" ExceptionHandling="0"/>
+				<Tool Name="VFLibrarianTool" AdditionalOptions="/machine:x64" OutputFile="B:\gitbmi\prms\_build\prmslib\Debug\prmslib.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="CMAKE_INTDIR=\&quot;Debug\&quot;" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran"/>
+				<Tool Name="VFMidlTool" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran" GenerateStublessProxies="true" OutputDirectory="$(IntDir)" HeaderFileName="$(InputName).h" DLLDataFileName="" InterfaceIdentifierFileName="$(InputName)_i.c" ProxyFileName="$(InputName)_p.c" TypeLibraryName="$(InputName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="B:\gitbmi\prms\_build\prmslib\Release" IntermediateDirectory="prmslib.dir\Release" TargetName="prmslib" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/W1 /O2 -heap-arrays1024 -QaxCORE-AVX2,CORE-AVX-I,AVX,SSE4.2,SSSE3 -Qipo -fp:fast=2 -Qdiag-disable:remark -Qmkl" SuppressStartupBanner="true" Optimization="optimizeFull" Preprocess="preprocessYes" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\_build\prmslib/$(ConfigurationName);B:\gitbmi\prms\src\prmslib;B:\gitbmi\prms\src\prmslib/$(ConfigurationName);B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\include/$(ConfigurationName);B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\lib/$(ConfigurationName);B:\BuildNetcdf\install\include\coretran;B:\BuildNetcdf\install\include\coretran/$(ConfigurationName)" PreprocessorDefinitions="NDEBUG;CMAKE_INTDIR=\&quot;Release\&quot;" ModulePath=".\$(ConfigurationName)" RuntimeLibrary="rtMultiThreadedDLL" ExceptionHandling="0"/>
+				<Tool Name="VFLibrarianTool" AdditionalOptions="/machine:x64" OutputFile="B:\gitbmi\prms\_build\prmslib\Release\prmslib.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG;CMAKE_INTDIR=\&quot;Release\&quot;" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran"/>
+				<Tool Name="VFMidlTool" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran" GenerateStublessProxies="true" OutputDirectory="$(IntDir)" HeaderFileName="$(InputName).h" DLLDataFileName="" InterfaceIdentifierFileName="$(InputName)_i.c" ProxyFileName="$(InputName)_p.c" TypeLibraryName="$(InputName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool"/></Configuration>
+		<Configuration Name="MinSizeRel|x64" OutputDirectory="B:\gitbmi\prms\_build\prmslib\MinSizeRel" IntermediateDirectory="prmslib.dir\MinSizeRel" TargetName="prmslib" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/W1" SuppressStartupBanner="true" Optimization="optimizeMinSpace" Preprocess="preprocessYes" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\_build\prmslib/$(ConfigurationName);B:\gitbmi\prms\src\prmslib;B:\gitbmi\prms\src\prmslib/$(ConfigurationName);B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\include/$(ConfigurationName);B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\lib/$(ConfigurationName);B:\BuildNetcdf\install\include\coretran;B:\BuildNetcdf\install\include\coretran/$(ConfigurationName)" PreprocessorDefinitions="NDEBUG;CMAKE_INTDIR=\&quot;MinSizeRel\&quot;" ModulePath=".\$(ConfigurationName)" RuntimeLibrary="rtMultiThreadedDLL" ExceptionHandling="0"/>
+				<Tool Name="VFLibrarianTool" AdditionalOptions="/machine:x64" OutputFile="B:\gitbmi\prms\_build\prmslib\MinSizeRel\prmslib.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG;CMAKE_INTDIR=\&quot;MinSizeRel\&quot;" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran"/>
+				<Tool Name="VFMidlTool" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran" GenerateStublessProxies="true" OutputDirectory="$(IntDir)" HeaderFileName="$(InputName).h" DLLDataFileName="" InterfaceIdentifierFileName="$(InputName)_i.c" ProxyFileName="$(InputName)_p.c" TypeLibraryName="$(InputName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool"/></Configuration>
+		<Configuration Name="RelWithDebInfo|x64" OutputDirectory="B:\gitbmi\prms\_build\prmslib\RelWithDebInfo" IntermediateDirectory="prmslib.dir\RelWithDebInfo" TargetName="prmslib" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/W1 /O2" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Preprocess="preprocessYes" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\_build\prmslib/$(ConfigurationName);B:\gitbmi\prms\src\prmslib;B:\gitbmi\prms\src\prmslib/$(ConfigurationName);B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\include/$(ConfigurationName);B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\lib/$(ConfigurationName);B:\BuildNetcdf\install\include\coretran;B:\BuildNetcdf\install\include\coretran/$(ConfigurationName)" PreprocessorDefinitions="NDEBUG;CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;" ModulePath=".\$(ConfigurationName)" RuntimeLibrary="rtMultiThreadedDLL" ExceptionHandling="0"/>
+				<Tool Name="VFLibrarianTool" AdditionalOptions="/machine:x64" OutputFile="B:\gitbmi\prms\_build\prmslib\RelWithDebInfo\prmslib.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG;CMAKE_INTDIR=\&quot;RelWithDebInfo\&quot;" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran"/>
+				<Tool Name="VFMidlTool" AdditionalIncludeDirectories="B:\gitbmi\prms\_build\prmslib;B:\gitbmi\prms\src\prmslib;B:\BuildNetcdf\install\include;B:\BuildNetcdf\install\lib;B:\BuildNetcdf\install\include\coretran" GenerateStublessProxies="true" OutputDirectory="$(IntDir)" HeaderFileName="$(InputName).h" DLLDataFileName="" InterfaceIdentifierFileName="$(InputName)_i.c" ProxyFileName="$(InputName)_p.c" TypeLibraryName="$(InputName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Source Files">
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_Abc.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_basin.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_climateflow.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_Control.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_dArray.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_dVariable.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_FileIO.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_FileIO_netcdf.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_gwflow.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_iArray.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_intcp.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_iScalar.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_iVariable.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_ModelBase.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_Object.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_obs.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_outvar_list.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_outvar_node.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_potet.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_potet_jh.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_precipitation.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_precipitation_hru.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_prms_time.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_rArray.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_rScalar.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_rVariable.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_sArray.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_simulation.f90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration>
+			<FileConfiguration Name="RelWithDebInfo|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration>
+			<FileConfiguration Name="MinSizeRel|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration></File>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_snowcomp.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_soilzone.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_solar_radiation.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_solar_radiation_degday.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_srunoff.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_streamflow.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_streamflow_muskingum.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_String.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_summary.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\c_sVariable.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_temperature.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_temperature_hru.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_transp_tindex.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\c_transpiration.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_utils_prms.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\c_water_balance.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\m_constants.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\m_conversions.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\m_utils_cbh.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_basin.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_climateflow.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\sm_control.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_FileIO_netcdf.f90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O2"/></FileConfiguration>
+			<FileConfiguration Name="RelWithDebInfo|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O2"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O2"/></FileConfiguration>
+			<FileConfiguration Name="MinSizeRel|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O2"/></FileConfiguration></File>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_gwflow.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_intcp.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\classes\sm_ModelBase.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_obs.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_outvar_list.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_outvar_node.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_potet.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_potet_jh.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_precipitation.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_precipitation_hru.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_prms_time.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_simulation.f90">
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration>
+			<FileConfiguration Name="RelWithDebInfo|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration>
+			<FileConfiguration Name="MinSizeRel|x64">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="-O0"/></FileConfiguration></File>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_snowcomp.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_soilzone.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_solar_radiation.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_solar_radiation_degday.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_srunoff.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_streamflow.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_streamflow_muskingum.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_summary.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_temperature.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_temperature_hru.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_transp_tindex.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\physics\sm_transpiration.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_utils_prms.f90"/>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\misc\sm_water_balance.f90"/></Filter>
+		<File RelativePath="B:\gitbmi\prms\src\prmslib\CMakeLists.txt">
+			<FileConfiguration Name="RelWithDebInfo|x64">
+				<Tool Name="VFCustomBuildTool" CommandLine="setlocal&#xA;&quot;C:\Program Files\CMake\bin\cmake.exe&quot; -SB:/gitbmi/prms/src -BB:/gitbmi/prms/_build --check-stamp-file B:/gitbmi/prms/_build/prmslib/CMakeFiles/generate.stamp&#xA;if %errorlevel% neq 0 goto :cmEnd&#xA;:cmEnd&#xA;endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone&#xA;:cmErrorLevel&#xA;exit /b %1&#xA;:cmDone&#xA;if %errorlevel% neq 0 goto :VCEnd" Description="Building Custom Rule B:/gitbmi/prms/src/prmslib/CMakeLists.txt" Outputs="B:\gitbmi\prms\_build\prmslib\CMakeFiles\generate.stamp" AdditionalDependencies="B:\BuildNetcdf\install\lib\cmake\coretran-config-debug.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config-release.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config.cmake;B:\gitbmi\prms\config\cmake\FindNetCDF.cmake;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\classes\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\io\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\misc\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\physics\CMakeLists.txt;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageHandleStandardArgs.cmake&quot;;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageMessage.cmake&quot;;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;"/></FileConfiguration>
+			<FileConfiguration Name="Release|x64">
+				<Tool Name="VFCustomBuildTool" CommandLine="setlocal&#xA;&quot;C:\Program Files\CMake\bin\cmake.exe&quot; -SB:/gitbmi/prms/src -BB:/gitbmi/prms/_build --check-stamp-file B:/gitbmi/prms/_build/prmslib/CMakeFiles/generate.stamp&#xA;if %errorlevel% neq 0 goto :cmEnd&#xA;:cmEnd&#xA;endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone&#xA;:cmErrorLevel&#xA;exit /b %1&#xA;:cmDone&#xA;if %errorlevel% neq 0 goto :VCEnd" Description="Building Custom Rule B:/gitbmi/prms/src/prmslib/CMakeLists.txt" Outputs="B:\gitbmi\prms\_build\prmslib\CMakeFiles\generate.stamp" AdditionalDependencies="B:\BuildNetcdf\install\lib\cmake\coretran-config-debug.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config-release.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config.cmake;B:\gitbmi\prms\config\cmake\FindNetCDF.cmake;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\classes\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\io\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\misc\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\physics\CMakeLists.txt;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageHandleStandardArgs.cmake&quot;;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageMessage.cmake&quot;;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;"/></FileConfiguration>
+			<FileConfiguration Name="Debug|x64">
+				<Tool Name="VFCustomBuildTool" CommandLine="setlocal&#xA;&quot;C:\Program Files\CMake\bin\cmake.exe&quot; -SB:/gitbmi/prms/src -BB:/gitbmi/prms/_build --check-stamp-file B:/gitbmi/prms/_build/prmslib/CMakeFiles/generate.stamp&#xA;if %errorlevel% neq 0 goto :cmEnd&#xA;:cmEnd&#xA;endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone&#xA;:cmErrorLevel&#xA;exit /b %1&#xA;:cmDone&#xA;if %errorlevel% neq 0 goto :VCEnd" Description="Building Custom Rule B:/gitbmi/prms/src/prmslib/CMakeLists.txt" Outputs="B:\gitbmi\prms\_build\prmslib\CMakeFiles\generate.stamp" AdditionalDependencies="B:\BuildNetcdf\install\lib\cmake\coretran-config-debug.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config-release.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config.cmake;B:\gitbmi\prms\config\cmake\FindNetCDF.cmake;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\classes\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\io\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\misc\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\physics\CMakeLists.txt;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageHandleStandardArgs.cmake&quot;;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageMessage.cmake&quot;;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;"/></FileConfiguration>
+			<FileConfiguration Name="MinSizeRel|x64">
+				<Tool Name="VFCustomBuildTool" CommandLine="setlocal&#xA;&quot;C:\Program Files\CMake\bin\cmake.exe&quot; -SB:/gitbmi/prms/src -BB:/gitbmi/prms/_build --check-stamp-file B:/gitbmi/prms/_build/prmslib/CMakeFiles/generate.stamp&#xA;if %errorlevel% neq 0 goto :cmEnd&#xA;:cmEnd&#xA;endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone&#xA;:cmErrorLevel&#xA;exit /b %1&#xA;:cmDone&#xA;if %errorlevel% neq 0 goto :VCEnd" Description="Building Custom Rule B:/gitbmi/prms/src/prmslib/CMakeLists.txt" Outputs="B:\gitbmi\prms\_build\prmslib\CMakeFiles\generate.stamp" AdditionalDependencies="B:\BuildNetcdf\install\lib\cmake\coretran-config-debug.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config-release.cmake;B:\BuildNetcdf\install\lib\cmake\coretran-config.cmake;B:\gitbmi\prms\config\cmake\FindNetCDF.cmake;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\classes\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\io\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\misc\CMakeLists.txt;B:\gitbmi\prms\src\prmslib\physics\CMakeLists.txt;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageHandleStandardArgs.cmake&quot;;&quot;C:\Program Files\CMake\share\cmake-3.15\Modules\FindPackageMessage.cmake&quot;;B:\gitbmi\prms\src\prmslib\CMakeLists.txt;"/></FileConfiguration></File></Files>
+	<Globals/></VisualStudioProject>
