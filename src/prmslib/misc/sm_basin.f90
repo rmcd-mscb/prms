@@ -78,10 +78,10 @@ contains
       call param_hdl%get_variable('hru_y', this%hru_y)
 
       allocate(this%hru_elev(this%nhru))
-      call param_hdl%get_variable('hru_y', this%hru_y)
+      call param_hdl%get_variable('hru_elev', this%hru_elev)
 
       allocate(this%hru_slope(this%nhru))
-      call param_hdl%get_variable('hru_elev', this%hru_elev)
+      call param_hdl%get_variable('hru_slope', this%hru_slope)
 
       allocate(this%hru_type(this%nhru))
       call param_hdl%get_variable('hru_type', this%hru_type)
