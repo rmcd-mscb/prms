@@ -68,8 +68,20 @@ contains
       allocate(this%hru_lat(this%nhru))
       call param_hdl%get_variable('hru_lat', this%hru_lat)
 
+      allocate(this%hru_lon(this%nhru))
+      call param_hdl%get_variable('hru_lon', this%hru_lon)
+
+      allocate(this%hru_x(this%nhru))
+      call param_hdl%get_variable('hru_x', this%hru_x)
+
+      allocate(this%hru_y(this%nhru))
+      call param_hdl%get_variable('hru_y', this%hru_y)
+
+      allocate(this%hru_elev(this%nhru))
+      call param_hdl%get_variable('hru_y', this%hru_y)
+
       allocate(this%hru_slope(this%nhru))
-      call param_hdl%get_variable('hru_slope', this%hru_slope)
+      call param_hdl%get_variable('hru_elev', this%hru_elev)
 
       allocate(this%hru_type(this%nhru))
       call param_hdl%get_variable('hru_type', this%hru_type)
@@ -81,10 +93,10 @@ contains
       call param_hdl%get_variable('nhm_seg', this%nhm_seg)
 
       ! TODO: parameters that aren't coded yet
-      ! hru_elev
-      ! hru_lon
-      ! hru_x
-      ! hru_y
+
+      ! dprst_frac_open
+      ! hru_aspect
+      ! hru_slope
       ! lake_hru_id
       ! lake_type
 
