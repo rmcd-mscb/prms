@@ -150,9 +150,11 @@ contains
           !   write(output_unit, *) this%var_daily(jj)%ptr_r32
           ! end if
 
-          call this%write_netcdf(this%file_hdl, this%outvar_id(jj), &
-                                  this%var_daily(jj), start=start, ocount=rcount)
-        end if
+          if (jj /= 12) then
+            call this%write_netcdf(this%file_hdl, this%outvar_id(jj), &
+                                    this%var_daily(jj), start=start, ocount=rcount)
+         end if
+       end if
       end do
     end associate
   end subroutine
