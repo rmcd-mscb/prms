@@ -92,7 +92,6 @@ program prms6
   call Control_data%param_file_hdl%close()
 
   ! Run the simulation
-  write(*,*) "main before sim"
   call model_simulation%run(Control_data)
 
   ! TODO: Open, position, and read any ancillary data including:

@@ -102,7 +102,6 @@ submodule (Simulation_class) sm_simulation
       class(Simulation), intent(inout) :: this
       type(Control), intent(in) :: ctl_data
 
-      write(*,*) 'before simulation'
       ! ------------------------------------------------------------------------
       do
         if (.not. this%model_time%next(ctl_data)) exit

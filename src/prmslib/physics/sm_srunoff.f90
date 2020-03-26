@@ -458,7 +458,6 @@ submodule (PRMS_SRUNOFF) sm_srunoff
         this%hru_sroffi = 0.0
         this%hru_sroffp = 0.0
         ! check_dprst = .false.
-        write(*,*) 'before hru loop'
         do k=1, active_hrus
           chru = hru_route_order(k)
           runoff = 0.0_dp
