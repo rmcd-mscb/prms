@@ -92,6 +92,7 @@ program prms6
   call Control_data%param_file_hdl%close()
 
   ! Run the simulation
+  write(*,*) "main before sim"
   call model_simulation%run(Control_data)
 
   ! TODO: Open, position, and read any ancillary data including:
@@ -113,7 +114,9 @@ program prms6
     write(output_unit, fmt='(a, 1x, f16.4, 1x, a)') 'Elapsed system clock:', delta_rtc_sec, 'seconds.'
     write(output_unit, fmt='(a, 1x, f16.4, 1x, a)') 'Elapsed cpu time:', end_ct - start_ct, 'seconds.'
   endif
-contains
+    contains
+    
+    
 
   !***********************************************************************
   ! Get Control File from command line or user interaction.
