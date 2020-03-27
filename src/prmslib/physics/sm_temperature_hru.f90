@@ -94,7 +94,7 @@ contains
   end subroutine
 
 
-  module subroutine run_Temperature_hru(this, ctl_data, model_basin, model_time, model_summary)
+  module subroutine run_Temperature_hru(this, ctl_data, model_basin, model_time, model_summary, tmax_in, tmin_in)
     use conversions_mod, only: f_to_c, c_to_f
     use UTILS_CBH, only: read_netcdf_cbh_file
     implicit none
@@ -104,10 +104,12 @@ contains
     type(Basin), intent(in) :: model_basin
     type(Time_t), intent(in), optional :: model_time
     type(Summary), intent(inout) :: model_summary
+    logical, intent(in), optional :: tmax_in, tmin_in
 
     ! Local variables
     integer(i32) :: ios
     integer(i32) :: datetime(6)
+    logical :: read_tmax, read_tmin
 
     ! --------------------------------------------------------------------------
     associate(basin_area_inv => model_basin%basin_area_inv, &
@@ -117,23 +119,39 @@ contains
 
               curr_month => model_time%Nowmonth, &
               timestep => model_time%Timestep)
-
+        
+      read_tmax = .TRUE.
+      read_tmin = .TRUE.
+      !if tmax_in or tmin_in eqaul True then values set by bmi for this time-step
+      if(PRESENT(tmax_in)) then
+          if(tmax_in.eqv..TRUE.) then
+              read_tmax = .FALSE.
+          endif
+      endif
+      if(PRESENT(tmin_in)) then
+          if(tmin_in.eqv..TRUE.) then
+              read_tmin = .FALSE.
+          endif
+      endif
       ios = 0
-
-      if (this%has_netcdf_tmax) then
-        call read_netcdf_cbh_file(this%tmax_funit, this%tmax_varid, this%tmax_idx_offset, timestep, nhru, this%tmax)
-      else
-        read(this%tmax_funit, *, IOSTAT=ios) datetime, this%tmax
+      if(read_tmax) then
+          if (this%has_netcdf_tmax) then
+            call read_netcdf_cbh_file(this%tmax_funit, this%tmax_varid, this%tmax_idx_offset, timestep, nhru, this%tmax)
+          else
+            read(this%tmax_funit, *, IOSTAT=ios) datetime, this%tmax
+          endif
+          this%tmax= this%tmax + this%tmax_cbh_adj(:, curr_month)
       endif
 
-      if (this%has_netcdf_tmin) then
-        call read_netcdf_cbh_file(this%tmin_funit, this%tmin_varid, this%tmin_idx_offset, timestep, nhru, this%tmin)
-      else
-        read(this%tmin_funit, *, IOSTAT=ios) datetime, this%tmin
+      if(read_tmin) then 
+          if (this%has_netcdf_tmin) then
+            call read_netcdf_cbh_file(this%tmin_funit, this%tmin_varid, this%tmin_idx_offset, timestep, nhru, this%tmin)
+          else
+            read(this%tmin_funit, *, IOSTAT=ios) datetime, this%tmin
+          endif
+          this%tmin = this%tmin + this%tmin_cbh_adj(:, curr_month)
       endif
 
-      this%tmax= this%tmax + this%tmax_cbh_adj(:, curr_month)
-      this%tmin = this%tmin + this%tmin_cbh_adj(:, curr_month)
       ! do jj=1, nhru
       !   this%tmax(jj) = this%tmax(jj) + this%tmax_cbh_adj(jj, curr_month)
       !   this%tmin(jj) = this%tmin(jj) + this%tmin_cbh_adj(jj, curr_month)
@@ -170,6 +188,6 @@ contains
         call this%set_nhru_summary_ptrs(ctl_data, model_summary)
       end if
     end associate
-  end subroutine
+    end subroutine
 
 end submodule

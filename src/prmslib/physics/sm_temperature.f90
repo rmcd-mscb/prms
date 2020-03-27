@@ -95,7 +95,7 @@ contains
     end associate
   end subroutine
 
-  module subroutine run_Temperature(this, ctl_data, model_basin, model_time, model_summary)
+  module subroutine run_Temperature(this, ctl_data, model_basin, model_time, model_summary, tmax_in, tmin_in)
     implicit none
 
     class(Temperature), intent(inout) :: this
@@ -103,7 +103,7 @@ contains
     type(Basin), intent(in) :: model_basin
     type(Time_t), intent(in), optional :: model_time
     type(Summary), intent(inout) :: model_summary
-
+    logical, intent(in), optional :: tmax_in, tmin_in
     ! --------------------------------------------------------------------------
   end subroutine
 
