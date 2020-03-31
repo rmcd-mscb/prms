@@ -142,19 +142,18 @@ submodule (PRMS_SRUNOFF) sm_srunoff
         allocate(this%infil(nhru))
         allocate(this%sroff(nhru))
 
-        !if (cascade_flag == 1) then
+        if (cascade_flag == 1) then
           ! Cascading variables
           allocate(this%upslope_hortonian(nhru))
           allocate(this%hru_hortn_cascflow(nhru))
           this%upslope_hortonian = 0.0_dp
           this%hru_hortn_cascflow = 0.0_dp
 
-          !if (nlake > 0) then ! rmcd causes bmi to crash when getting hortonian lakes if it's undefined
-                                ! I don't think there is any harm in allocating and setting to zero
+          if (nlake > 0) then 
             allocate(this%hortonian_lakes(nhru))
             this%hortonian_lakes = 0.0_dp
-          !endif
-        !endif
+          endif
+        endif
 
         if (cascade_flag == 1 .or. cascadegw_flag > 0) then
           allocate(this%strm_seg_in(nsegment))

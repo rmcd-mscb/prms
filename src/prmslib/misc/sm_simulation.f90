@@ -16,7 +16,7 @@ submodule (Simulation_class) sm_simulation
       ! this%model_basin = Basin(ctl_data)
       ! this%model_time = Time_t(ctl_data, this%model_basin%hemisphere)
 
-     this%model_time = Time_t(ctl_data)
+      this%model_time = Time_t(ctl_data)
       this%model_basin = Basin(ctl_data)
       call this%model_time%set_hemisphere(this%model_basin%hemisphere)
 
