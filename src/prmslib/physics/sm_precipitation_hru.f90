@@ -75,7 +75,7 @@ contains
   end subroutine
 
 
-  module subroutine run_Precipitation_hru(this, ctl_data, model_basin, model_temp, model_time, model_summary)
+  module subroutine run_Precipitation_hru(this, ctl_data, model_basin, model_temp, model_time, model_summary, precip_in)
     use UTILS_CBH, only: read_netcdf_cbh_file
     implicit none
 
@@ -85,11 +85,11 @@ contains
     class(Temperature), intent(in) :: model_temp
     type(Time_t), intent(in), optional :: model_time
     type(Summary), intent(inout) :: model_summary
-
+    logical, intent(in), optional :: precip_in
     ! Local variables
     integer(i32) :: ios
     integer(i32) :: datetime(6)
-
+    logical :: read_precip
     ! --------------------------------------------------------------------------
     associate(curr_month => model_time%Nowmonth, &
               day_of_year => model_time%day_of_year, &
@@ -98,14 +98,24 @@ contains
               nhru => model_basin%nhru, &
               nmonths => model_basin%nmonths, &
               hru_area => model_basin%hru_area)
+      read_precip = .TRUE.
+    
+      !if precip_in eqaul True then values set by bmi for this time-step
+      if(PRESENT(precip_in)) then
+          if(precip_in.eqv..TRUE.) then
+              read_precip = .FALSE.
+          endif
+      endif
 
       ios = 0
 
-      if (this%has_netcdf_precip) then
-        call read_netcdf_cbh_file(this%precip_funit, this%precip_varid, this%precip_idx_offset, timestep, nhru, this%hru_ppt)
-      else
-        ! read(this%precip_funit, *, IOSTAT=ios) yr, mo, dy, hr, mn, sec, (this%hru_ppt(jj), jj=1, nhru)
-        read(this%precip_funit, *, IOSTAT=ios) datetime, this%hru_ppt
+      if(read_precip) then
+          if (this%has_netcdf_precip) then
+            call read_netcdf_cbh_file(this%precip_funit, this%precip_varid, this%precip_idx_offset, timestep, nhru, this%hru_ppt)
+          else
+            ! read(this%precip_funit, *, IOSTAT=ios) yr, mo, dy, hr, mn, sec, (this%hru_ppt(jj), jj=1, nhru)
+            read(this%precip_funit, *, IOSTAT=ios) datetime, this%hru_ppt
+          endif
       endif
 
       ! this%pptmix = 0

@@ -141,14 +141,14 @@ contains
     end associate
   end subroutine
 
-  module subroutine run_Precipitation(this, ctl_data, model_basin, model_temp, model_time, model_summary)
+  module subroutine run_Precipitation(this, ctl_data, model_basin, model_temp, model_time, model_summary, precip_in)
     class(Precipitation), intent(inout) :: this
     type(Control), intent(in) :: ctl_data
     type(Basin), intent(in) :: model_basin
     class(Temperature), intent(in) :: model_temp
     type(Time_t), intent(in), optional :: model_time
     type(Summary), intent(inout) :: model_summary
-
+    logical, intent(in), optional :: precip_in
     ! --------------------------------------------------------------------------
   end subroutine
 
