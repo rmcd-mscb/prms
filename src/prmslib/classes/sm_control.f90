@@ -222,11 +222,12 @@ contains
 
     module subroutine cleanup_control(this)
       class(Control) :: this
+      integer(i32) :: istat 
         !! Srunoff class
 
       logical :: is_opened
 
-       inquire(UNIT=this%model_output_unit, OPENED=is_opened)
+       inquire(UNIT=this%model_output_unit, OPENED=is_opened, iostat=istat)
        if (is_opened) then
          close(this%model_output_unit)
        end if
