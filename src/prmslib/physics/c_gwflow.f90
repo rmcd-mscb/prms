@@ -43,7 +43,7 @@ module PRMS_GWFLOW
 
     ! Local Variables
     real(r64), allocatable, private :: gwstor_minarea(:)
-    real(r64), allocatable :: gwin_dprst(:)
+    real(r64), pointer :: gwin_dprst(:)
     real(r64), allocatable, private :: lake_seepage_max(:)
 
     logical :: has_gwstor_minarea
@@ -51,8 +51,8 @@ module PRMS_GWFLOW
 
     real(r64), allocatable :: basin_dnflow
     real(r64), allocatable :: basin_gw_upslope
-    real(r64), allocatable :: hru_storage_ante(:)
-    real(r64), allocatable :: gwres_stor_ante(:)
+    real(r64), pointer :: hru_storage_ante(:)
+    real(r64), pointer :: gwres_stor_ante(:)
 
     ! Output variables
     real(r64), pointer :: basin_gwflow
