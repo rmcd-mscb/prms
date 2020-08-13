@@ -11,10 +11,13 @@ contains
 
     integer(i32) :: jj
     ! --------------------------------------------------------------------------
-    associate(print_debug => ctl_data%print_debug%value, &
-              nhru => model_basin%nhru, &
+    associate(init_vars_from_file => ctl_data%init_vars_from_file%value, &
               outVarON_OFF => ctl_data%outVarON_OFF%value, &
-              outVar_names => ctl_data%outVar_names)
+              outVar_names => ctl_data%outVar_names, &
+              print_debug => ctl_data%print_debug%value, &
+              save_vars_to_file => ctl_data%save_vars_to_file%value, &
+
+              nhru => model_basin%nhru)
 
       call this%set_module_info(name=MODNAME, desc=MODDESC, version=MODVERSION)
 
@@ -24,7 +27,17 @@ contains
       endif
 
       allocate(this%transp_on(nhru))
-      this%transp_on = .false.
+
+      if (init_vars_from_file == 0) then
+        this%transp_on = .false.
+      else
+        call ctl_data%read_restart_variable('transp_on', this%transp_on)
+      end if
+
+      if (save_vars_to_file == 1) then
+        ! Create restart variables
+        call ctl_data%add_variable('transp_on', this%transp_on, 'nhru', 'none')
+      end if
 
       ! Connect summary variables that need to be output
       if (outVarON_OFF == 1) then
@@ -53,4 +66,17 @@ contains
     print *, 'Transpiration%run() stub'
   end subroutine
 
+  module subroutine cleanup_Transpiration(this, ctl_data)
+    class(Transpiration), intent(in) :: this
+      !! Transpiration class
+    type(Control), intent(in) :: ctl_data
+
+    ! --------------------------------------------------------------------------
+    associate(save_vars_to_file => ctl_data%save_vars_to_file%value)
+      if (save_vars_to_file == 1) then
+        ! Write out this module's restart variables
+        call ctl_data%write_restart_variable('transp_on', this%transp_on)
+      end if
+    end associate
+  end subroutine
 end submodule

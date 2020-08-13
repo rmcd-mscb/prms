@@ -31,20 +31,18 @@ MODULE PRMS_TRANSP_TINDEX
 
 
     ! Local Variables
-    ! integer(i32), allocatable :: transp_check(:)
-    logical, allocatable, private :: transp_check(:)
+    logical, pointer, private :: transp_check(:)
 
-    integer(i32), allocatable, private :: transp_beg_restart(:)
-    integer(i32), allocatable, private :: transp_end_restart(:)
+    ! integer(i32), allocatable, private :: transp_beg_restart(:)
+    ! integer(i32), allocatable, private :: transp_end_restart(:)
 
-    real(r32), allocatable, private :: tmax_sum(:)
-    ! real(r32), allocatable, private :: transp_tmax_c(:)
-    real(r32), allocatable, private :: transp_tmax_restart(:)
+    real(r32), pointer, private :: tmax_sum(:)
+    ! real(r32), allocatable, private :: transp_tmax_restart(:)
 
     contains
       procedure, public :: init => init_Transp_tindex
-      procedure, public :: cleanup => cleanup_Transp_tindex
       procedure, public :: run => run_Transp_tindex
+      procedure, public :: cleanup => cleanup_Transp_tindex
       procedure, nopass, private :: init_transp_on
       procedure, nopass, private :: init_transp_check
       procedure, nopass, private :: update_transpiration

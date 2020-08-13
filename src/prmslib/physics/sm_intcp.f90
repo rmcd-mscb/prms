@@ -25,6 +25,7 @@ contains
               outVar_names => ctl_data%outVar_names, &
               param_hdl => ctl_data%param_file_hdl, &
               print_debug => ctl_data%print_debug%value, &
+              save_vars_to_file => ctl_data%save_vars_to_file%value, &
               snow_intcp_dynamic => ctl_data%snow_intcp_dynamic%values(1), &
               srain_intcp_dynamic => ctl_data%srain_intcp_dynamic%values(1), &
               start_time => ctl_data%start_time%values, &
@@ -58,7 +59,6 @@ contains
       call param_hdl%get_variable('wrain_intcp', this%wrain_intcp)
 
       ! NEW VARIABLES and PARAMETERS for APPLICATION RATES
-      ! this%use_transfer_intcp = 0
       this%use_transfer_intcp = .false.
 
       ! if (Water_use_flag==1) then
@@ -72,6 +72,7 @@ contains
       !   this%net_apply = 0.0
       ! endif
 
+      ! NOTE: PAN - intcp_on is not used for anything except as an output variable
       allocate(this%canopy_covden(nhru))
       allocate(this%hru_intcpevap(nhru))
       allocate(this%hru_intcpstor(nhru))
@@ -92,63 +93,49 @@ contains
 
       this%canopy_covden = 0.0
       this%hru_intcpevap = 0.0
-      this%hru_intcpstor = 0.0
       this%intcp_changeover = 0.0
       this%intcp_evap = 0.0
       this%intcp_form = 0
-      this%intcp_on = .false.
-      this%intcp_stor = 0.0
-      this%intcp_transp_on = transp_on
+
       this%net_ppt = 0.0
       this%net_rain = -200.
       this%net_snow = 0.0
 
-      allocate(this%basin_changeover)
-      allocate(this%basin_intcp_evap)
-      allocate(this%basin_intcp_stor)
-      allocate(this%basin_net_ppt)
-      allocate(this%basin_net_rain)
-      allocate(this%basin_net_snow)
+      ! if (this%use_transfer_intcp) then
+      !   this%basin_hru_apply = 0.0_dp
+      !   this%basin_net_apply = 0.0_dp
+      ! end if
 
-      this%basin_changeover = 0.0_dp
-      this%basin_intcp_evap = 0.0_dp
-      this%basin_intcp_stor = 0.0_dp
-      this%basin_net_ppt = 0.0_dp
-      this%basin_net_rain = 0.0_dp
-      this%basin_net_snow = 0.0_dp
-
-      if (this%use_transfer_intcp) then
-        allocate(this%basin_hru_apply)
-        allocate(this%basin_net_apply)
-        this%basin_hru_apply = 0.0_dp
-        this%basin_net_apply = 0.0_dp
-      end if
-
-      if (init_vars_from_file == 1) then
-        ! TODO: hook up reading restart file
+      ! The restart output variables have to be handled here because the netcdf
+      ! read var routine reallocates the variables (which would mess up the
+      ! output variable pointers)
+      if (init_vars_from_file == 0) then
+        this%hru_intcpstor = 0.0
+        this%intcp_on = .false.
+        this%intcp_stor = 0.0
+        this%intcp_transp_on = transp_on
+      else
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~
+        ! Initialize from restart
+        call ctl_data%read_restart_variable('hru_intcpstor', this%hru_intcpstor)
+        call ctl_data%read_restart_variable('intcp_on', this%intcp_on)
+        call ctl_data%read_restart_variable('intcp_stor', this%intcp_stor)
+        call ctl_data%read_restart_variable('intcp_transp_on', this%intcp_transp_on)
       endif
+
+      if (save_vars_to_file == 1) then
+        ! Create restart variables
+        call ctl_data%add_variable('hru_intcpstor', this%hru_intcpstor, 'nhru', 'inches')
+        call ctl_data%add_variable('intcp_on', this%intcp_on, 'nhru', 'none')
+        call ctl_data%add_variable('intcp_stor', this%intcp_stor, 'nhru', 'inches')
+        call ctl_data%add_variable('intcp_transp_on', this%intcp_transp_on, 'nhru', 'none')
+      end if
 
       ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       ! Connect summary variables that need to be output
       if (outVarON_OFF == 1) then
         do jj = 1, outVar_names%size()
           select case(outVar_names%values(jj)%s)
-            case('basin_changeover')
-              call model_summary%set_summary_var(jj, this%basin_changeover)
-            case('basin_hru_apply')
-              call model_summary%set_summary_var(jj, this%basin_hru_apply)
-            case('basin_intcp_evap')
-              call model_summary%set_summary_var(jj, this%basin_intcp_evap)
-            case('basin_intcp_stor')
-              call model_summary%set_summary_var(jj, this%basin_intcp_stor)
-            case('basin_net_apply')
-              call model_summary%set_summary_var(jj, this%basin_net_apply)
-            case('basin_net_ppt')
-              call model_summary%set_summary_var(jj, this%basin_net_ppt)
-            case('basin_net_rain')
-              call model_summary%set_summary_var(jj, this%basin_net_rain)
-            case('basin_net_snow')
-              call model_summary%set_summary_var(jj, this%basin_net_snow)
             case('intcp_form')
               call model_summary%set_summary_var(jj, this%intcp_form)
             case('intcp_on')
@@ -180,7 +167,7 @@ contains
 
       if (any([1, 3, 5, 7]==dyn_intcp_flag)) then
         ! Open the wrain_intcp_dynamic file
-        call open_dyn_param_file(nhru, this%wrain_intcp_unit, ierr, wrain_intcp_dynamic%s, 'wrain_intcp_dynamic')
+        call open_dyn_param_file(this%wrain_intcp_unit, ierr, wrain_intcp_dynamic%s, 'wrain_intcp_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic wrain_intcp parameter file.'
           stop
@@ -194,7 +181,7 @@ contains
 
       if (any([2, 3, 6, 7]==dyn_intcp_flag)) then
         ! Open the srain_intcp_dynamic file
-        call open_dyn_param_file(nhru, this%srain_intcp_unit, ierr, srain_intcp_dynamic%s, 'srain_intcp_dynamic')
+        call open_dyn_param_file(this%srain_intcp_unit, ierr, srain_intcp_dynamic%s, 'srain_intcp_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic srain_intcp parameter file.'
           stop
@@ -208,7 +195,7 @@ contains
 
       if (any([4, 5, 6, 7]==dyn_intcp_flag)) then
         ! Open the snow_intcp_dynamic file
-        call open_dyn_param_file(nhru, this%snow_intcp_unit, ierr, snow_intcp_dynamic%s, 'snow_intcp_dynamic')
+        call open_dyn_param_file(this%snow_intcp_unit, ierr, snow_intcp_dynamic%s, 'snow_intcp_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic snow_intcp parameter file.'
           stop
@@ -222,7 +209,7 @@ contains
 
       if (any([1, 3]==dyn_covden_flag)) then
         ! Open the covden_sum_dynamic file
-        call open_dyn_param_file(nhru, this%covden_sum_unit, ierr, covden_sum_dynamic%s, 'covden_sum_dynamic')
+        call open_dyn_param_file(this%covden_sum_unit, ierr, covden_sum_dynamic%s, 'covden_sum_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic covden_sum parameter file.'
           stop
@@ -236,7 +223,7 @@ contains
 
       if (any([2, 3]==dyn_covden_flag)) then
         ! Open the covden_win_dynamic file
-        call open_dyn_param_file(nhru, this%covden_win_unit, ierr, covden_win_dynamic%s, 'covden_win_dynamic')
+        call open_dyn_param_file(this%covden_win_unit, ierr, covden_win_dynamic%s, 'covden_win_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic covden_win parameter file.'
           stop
@@ -248,18 +235,6 @@ contains
         allocate(this%covden_win_chgs(nhru))
       end if
     end associate
-  end subroutine
-
-
-  module subroutine cleanup_Interception(this)
-    class(Interception) :: this
-      !! Interception class
-
-      if (this%has_dynamic_params) then
-        close(this%dyn_output_unit)
-      end if
-
-    ! TODO: Add write restart file stuff
   end subroutine
 
 
@@ -279,10 +254,6 @@ contains
     type(Climateflow), intent(in) :: model_climate
       !! Climate variables
     type(Time_t), intent(in) :: model_time
-
-    ! NOTE: model_precip must be intent(inout) because newsnow and pptmix are
-    !       modified in this subroutine.
-    !       2019-11-01 PAN: moved newsnow and pptmix entirely to snowcomp
 
     ! Local Variables
     integer(i32) :: chru
@@ -319,7 +290,6 @@ contains
 
               nhru => model_basin%nhru, &
               active_mask => model_basin%active_mask, &
-              basin_area_inv => model_basin%basin_area_inv, &
               cov_type => model_basin%cov_type, &
               active_hrus => model_basin%active_hrus, &
               hru_area => model_basin%hru_area, &
@@ -333,8 +303,6 @@ contains
               hru_ppt => model_precip%hru_ppt, &
               hru_rain => model_precip%hru_rain, &
               hru_snow => model_precip%hru_snow, &
-              ! newsnow => model_precip%newsnow, &
-              ! pptmix => model_precip%pptmix, &
 
               pkwater_equiv => model_climate%pkwater_equiv, &
 
@@ -348,17 +316,12 @@ contains
       ! pkwater_equiv is from last time step
       if (print_debug == 1) then
         this%intcp_stor_ante = this%hru_intcpstor
-        this%last_intcp_stor = this%basin_intcp_stor
       endif
-
-      this%basin_changeover = 0.0_dp
 
       ! zero application rate variables for today
       if (this%use_transfer_intcp) then
         this%net_apply = 0.0
       endif
-
-      this%intcp_on = .false.
 
       this%intcp_form = 0
       where (hru_snow > 0.0)
@@ -507,9 +470,6 @@ contains
           !           this%net_apply(chru) = this%gain_inches(chru)
           !         endif
           !       endif
-          !
-          !       ! this%basin_hru_apply = this%basin_hru_apply + dble(this%gain_inches(chru) * hru_area(chru))
-          !       ! this%basin_net_apply = this%basin_net_apply + dble(this%net_apply(chru) * hru_area(chru))
           !     else
           !       STOP 'ERROR, canopy transfer attempted to HRU with cov_den = 0.0'
           !     endif
@@ -527,8 +487,6 @@ contains
                 if (netsnow < NEARZERO) then   !rsr, added 3/9/2006
                   netrain = netrain + netsnow
                   netsnow = 0.0
-                  ! newsnow(chru) = 0
-                  ! pptmix(chru) = 0   ! reset to be sure it is zero
                 endif
               endif
             endif
@@ -591,7 +549,11 @@ contains
         this%intcp_evap(chru) = intcpevap
         this%hru_intcpevap(chru) = intcpevap * this%canopy_covden(chru)
         this%intcp_stor(chru) = intcpstor
-        this%intcp_on(chru) = intcpstor > 0.0
+
+        if (intcpstor > 0.0) then
+          this%intcp_on(chru) = .true.
+        end if
+
         this%hru_intcpstor(chru) = intcpstor * this%canopy_covden(chru)
         this%intcp_changeover(chru) = changeover + extra_water
 
@@ -599,27 +561,31 @@ contains
         this%net_snow(chru) = netsnow
         this%net_ppt(chru) = netrain + netsnow
 
-        this%basin_changeover = this%basin_changeover + dble(changeover * hru_area(chru))
-
         if (changeover > 0.0 .and. print_debug > -1) then
           write(output_unit, *) 'Change over storage:', changeover, '; HRU:', chru
         endif
       enddo
+    end associate
+  end subroutine
 
-      this%basin_changeover = this%basin_changeover * basin_area_inv
 
-      !rsr, question about depression storage for basin_net_ppt???
-      !     My assumption is that cover density is for the whole HRU
-      this%basin_net_ppt = sum(dble(this%net_ppt * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_net_snow = sum(dble(this%net_snow * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_net_rain = sum(dble(this%net_rain * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_intcp_stor = sum(dble(this%hru_intcpstor * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_intcp_evap = sum(dble(this%hru_intcpevap * hru_area), mask=active_mask) * basin_area_inv
+  module subroutine cleanup_Interception(this, ctl_data)
+    class(Interception), intent(in) :: this
+      !! Interception class
+    type(Control), intent(in) :: ctl_data
 
-      if (this%use_transfer_intcp) then
-        this%basin_net_apply = sum(dble(this%gain_inches * hru_area), mask=active_mask) * basin_area_inv
-        this%basin_hru_apply = sum(dble(this%net_apply * hru_area), mask=active_mask) * basin_area_inv
-      endif
+    associate(save_vars_to_file => ctl_data%save_vars_to_file%value)
+      if (this%has_dynamic_params) then
+        close(this%dyn_output_unit)
+      end if
+
+      if (save_vars_to_file == 1) then
+        ! Write out this module's restart variables
+        call ctl_data%write_restart_variable('hru_intcpstor', this%hru_intcpstor)
+        call ctl_data%write_restart_variable('intcp_on', this%intcp_on)
+        call ctl_data%write_restart_variable('intcp_stor', this%intcp_stor)
+        call ctl_data%write_restart_variable('intcp_transp_on', this%intcp_transp_on)
+      end if
     end associate
   end subroutine
 
@@ -651,7 +617,7 @@ contains
 
 
   module subroutine read_dyn_params(this, ctl_data, model_basin, model_time)
-    use UTILS_PRMS, only: get_next_time, update_parameter
+    use UTILS_PRMS, only: get_next_time, update_parameter, yr_mo_eq_dy_le
     implicit none
 
     class(Interception), intent(inout) :: this
@@ -674,7 +640,8 @@ contains
     ! 4=file snow_intcp_dynamic; additive combinations
     if (any([1, 3, 5, 7]==dyn_intcp_flag)) then
       ! Updates of wrain_intcp
-      if (all(this%next_dyn_wrain_intcp_date == curr_time(1:3))) then
+      if (yr_mo_eq_dy_le(this%next_dyn_wrain_intcp_date, curr_time(1:3))) then
+      ! if (all(this%next_dyn_wrain_intcp_date == curr_time(1:3))) then
         read(this%wrain_intcp_unit, *) this%next_dyn_wrain_intcp_date, this%wrain_intcp_chgs
         write(output_unit, 9008) MODNAME, '%read_dyn_params() INFO: wrain_intcp was updated. ', this%next_dyn_wrain_intcp_date
 
@@ -686,7 +653,8 @@ contains
 
     if (any([2, 3, 6, 7]==dyn_intcp_flag)) then
       ! Updates of srain_intcp
-      if (all(this%next_dyn_srain_intcp_date == curr_time(1:3))) then
+      if (yr_mo_eq_dy_le(this%next_dyn_srain_intcp_date, curr_time(1:3))) then
+      ! if (all(this%next_dyn_srain_intcp_date == curr_time(1:3))) then
         read(this%srain_intcp_unit, *) this%next_dyn_srain_intcp_date, this%srain_intcp_chgs
         write(output_unit, 9008) MODNAME, '%read_dyn_params() INFO: srain_intcp was updated. ', this%next_dyn_srain_intcp_date
 
@@ -698,7 +666,8 @@ contains
 
     if (any([4, 5, 6, 7]==dyn_intcp_flag)) then
       ! Updates of snow_intcp
-      if (all(this%next_dyn_snow_intcp_date == curr_time(1:3))) then
+      if (yr_mo_eq_dy_le(this%next_dyn_snow_intcp_date, curr_time(1:3))) then
+      ! if (all(this%next_dyn_snow_intcp_date == curr_time(1:3))) then
         read(this%snow_intcp_unit, *) this%next_dyn_snow_intcp_date, this%snow_intcp_chgs
         write(output_unit, 9008) MODNAME, '%read_dyn_params() INFO: snow_intcp was updated. ', this%next_dyn_snow_intcp_date
 
@@ -710,7 +679,8 @@ contains
 
     if (any([1, 3]==dyn_covden_flag)) then
       ! Updates of covden_sum
-      if (all(this%next_dyn_covden_sum_date == curr_time(1:3))) then
+      if (yr_mo_eq_dy_le(this%next_dyn_covden_sum_date, curr_time(1:3))) then
+      ! if (all(this%next_dyn_covden_sum_date == curr_time(1:3))) then
         read(this%covden_sum_unit, *) this%next_dyn_covden_sum_date, this%covden_sum_chgs
         write(output_unit, 9008) MODNAME, '%read_dyn_params() INFO: covden_sum was updated. ', this%next_dyn_covden_sum_date
 
@@ -722,7 +692,8 @@ contains
 
     if (any([2, 3]==dyn_covden_flag)) then
       ! Updates of covden_win
-      if (all(this%next_dyn_covden_win_date == curr_time(1:3))) then
+      if (yr_mo_eq_dy_le(this%next_dyn_covden_win_date, curr_time(1:3))) then
+      ! if (all(this%next_dyn_covden_win_date == curr_time(1:3))) then
         read(this%covden_win_unit, *) this%next_dyn_covden_win_date, this%covden_win_chgs
         write(output_unit, 9008) MODNAME, '%read_dyn_params() INFO: covden_win was updated. ', this%next_dyn_covden_win_date
 

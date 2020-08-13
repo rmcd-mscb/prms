@@ -13,14 +13,6 @@ contains
     character(len=*), intent(in) :: control_filename
       !! File name to read the control parameters from.
 
-  ! module function constructor_Control(control_filename) result(this)
-  !   use iso_fortran_env
-  !   use UTILS_PRMS, only: print_module_info
-  !   implicit none
-
-  !   type(Control) :: this
-  !   character(len=*), intent(in) :: control_filename
-
     ! Local variables
     character(len=2) :: fileext
     integer(i32) :: numfiles, ppos
@@ -42,8 +34,17 @@ contains
 
     this%model_output_unit = this%open_model_output_file()
 
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ! Restart
+
+    if (this%init_vars_from_file%value == 1) then
+      ! Open a prior restart file
+      call this%open_restart_netcdf()
+    end if
+
     if (this%save_vars_to_file%value == 1) then
-      this%restart_output_unit = this%open_var_save_file()
+      ! Create restart output file
+      call this%create_restart_netcdf()
     endif
 
     if (this%model_mode%values(1)%s == 'GSFLOW') then
@@ -195,42 +196,531 @@ contains
     endif
   end function
 
-
-  module function open_var_save_file(this)
-    !! Open the var_save_file (aka restart file)
-    use m_errors, only: fErr, IO_OPEN
+  module subroutine cleanup_control(this)
+    use netcdf
     implicit none
 
-    integer(i32) :: open_var_save_file
+    class(Control) :: this
+
+    logical :: is_opened
+
+    inquire(UNIT=this%model_output_unit, OPENED=is_opened)
+    if (is_opened) then
+      close(this%model_output_unit)
+    end if
+
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ! Restart files
+    if (this%init_vars_from_file%value == 1) then
+      call this%err_check(nf90_close(this%restart_in_hdl))
+    end if
+
+    if (this%save_vars_to_file%value == 1) then
+      call this%err_check(nf90_close(this%restart_out_hdl))
+    end if
+  end subroutine
+
+  module subroutine write_restart_var_logical_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    logical, intent(in) :: data(:)
+
+    integer(i32) :: var_id
+    integer(i32) :: start(1)
+    integer(i32) :: rcount(1)
+
+    integer :: on
+    integer :: off
+    integer, allocatable :: logical_out(:)
+
+    ! ------------------------------------------------------------------------
+    ! Write the variable data
+    call this%err_check(nf90_inq_varid(this%restart_out_hdl, var_name, var_id))
+
+    on = 1
+    off = 0
+
+    allocate(logical_out(size(data)))
+    logical_out = merge(on, off, data)
+
+    start = (/ 1 /)
+    rcount = (/ size(data) /)
+
+    call this%err_check(nf90_put_var(this%restart_out_hdl, var_id, logical_out, start=start, count=rcount))
+    deallocate(logical_out)
+  end subroutine
+
+  module subroutine write_restart_var_i32_0d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    integer(i32), intent(in) :: data
+
+    integer(i32) :: var_id
+    integer(i32) :: start(1)
+
+    ! ------------------------------------------------------------------------
+    ! Write the variable data
+    call this%err_check(nf90_inq_varid(this%restart_out_hdl, var_name, var_id))
+
+    start = (/ 1 /)
+    call this%err_check(nf90_put_var(this%restart_out_hdl, var_id, data, start=start))
+  end subroutine
+
+  module subroutine write_restart_var_i32_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    integer(i32), intent(in) :: data(:)
+
+    integer(i32) :: var_id
+    integer(i32) :: start(1)
+    integer(i32) :: rcount(1)
+
+    ! ------------------------------------------------------------------------
+    ! Write the variable data
+    call this%err_check(nf90_inq_varid(this%restart_out_hdl, var_name, var_id))
+
+    start = (/ 1 /)
+    rcount = (/ size(data) /)
+    call this%err_check(nf90_put_var(this%restart_out_hdl, var_id, data, start=start, count=rcount))
+  end subroutine
+
+  module subroutine write_restart_var_r32_0d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    real(r32), intent(in) :: data
+
+    integer(i32) :: var_id
+    integer(i32) :: start(1)
+
+    ! ------------------------------------------------------------------------
+    ! Write the variable data
+    call this%err_check(nf90_inq_varid(this%restart_out_hdl, var_name, var_id))
+
+    start = (/ 1 /)
+    call this%err_check(nf90_put_var(this%restart_out_hdl, var_id, data, start=start))
+  end subroutine
+
+  module subroutine write_restart_var_r32_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    real(r32), intent(in) :: data(:)
+
+    integer(i32) :: var_id
+    integer(i32) :: start(2)
+    integer(i32) :: rcount(2)
+
+    ! ------------------------------------------------------------------------
+    ! Write the variable data
+    call this%err_check(nf90_inq_varid(this%restart_out_hdl, var_name, var_id))
+
+    start = (/ 1, 1 /)
+    rcount = (/ size(data), 1 /)
+    call this%err_check(nf90_put_var(this%restart_out_hdl, var_id, data, start=start, count=rcount))
+  end subroutine
+
+  module subroutine write_restart_var_r64_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    real(r64), intent(in) :: data(:)
+
+    integer(i32) :: var_id
+    integer(i32) :: start(2)
+    integer(i32) :: rcount(2)
+
+    ! ------------------------------------------------------------------------
+    ! Write the variable data
+    call this%err_check(nf90_inq_varid(this%restart_out_hdl, var_name, var_id))
+
+    start = (/ 1, 1 /)
+    rcount = (/ size(data), 1 /)
+    call this%err_check(nf90_put_var(this%restart_out_hdl, var_id, data, start=start, count=rcount))
+  end subroutine
+
+
+  module subroutine add_dimension(this, dim_name, dim_size, dim_var_name, dim_var_longname, datatype, units)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: dim_name
+    integer(i32), intent(in) :: dim_size
+    character(len=*), intent(in) :: dim_var_name
+    character(len=*), intent(in) :: dim_var_longname
+    integer(i32), intent(in) :: datatype
+    character(len=*), intent(in) :: units
+
+    integer(i32) :: dimid
+    integer(i32) :: varid
+
+    ! ------------------------------------------------------------------------
+    ! Enter define mode
+    call this%err_check(nf90_redef(this%restart_out_hdl))
+
+    call this%err_check(nf90_def_dim(this%restart_out_hdl, dim_name, dim_size, dimid))
+
+    ! Always include nhm_id as a variable
+    call this%err_check(nf90_def_var(this%restart_out_hdl, dim_var_name, datatype, dimid, varid))
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'long_name', dim_var_longname))
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'units', units))
+
+    call this%err_check(nf90_enddef(this%restart_out_hdl))
+  end subroutine
+
+  module subroutine add_time_dimension(this, dim_name, dim_size, dim_var_name, units, calendar)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: dim_name
+    integer(i32), intent(in) :: dim_size
+    character(len=*), intent(in) :: dim_var_name
+    character(len=*), intent(in) :: units
+    character(len=*), intent(in) :: calendar
+
+    integer(i32) :: dimid
+    integer(i32) :: varid
+
+    ! ------------------------------------------------------------------------
+    ! Enter define mode
+    call this%err_check(nf90_redef(this%restart_out_hdl))
+
+    ! Define the time dimension. Restart files have a single timestep.
+    call this%err_check(nf90_def_dim(this%restart_out_hdl, dim_name, dim_size, dimid))
+
+    ! Define the variable for the time dimension
+    call this%err_check(nf90_def_var(this%restart_out_hdl, dim_var_name, NF90_FLOAT, dimid, varid))
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'long_name', dim_var_name))
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'calendar', calendar))
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'units', units))
+
+    call this%err_check(nf90_enddef(this%restart_out_hdl))
+  end subroutine
+
+  module subroutine add_variable_logical_1d(this, var_name, thevar, dim_name, units)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    logical, intent(in) :: thevar(:)
+    character(len=*), intent(in) :: dim_name
+    character(len=*), intent(in) :: units
+
+    integer(i32) :: dimid
+    integer(i32) :: dim_size
+    integer(i32) :: dimids(2)
+    integer(i32) :: dimid_time
+    integer(i32) :: varid
+
+    ! ------------------------------------------------------------------------
+    ! Enter define mode
+    call this%err_check(nf90_redef(this%restart_out_hdl))
+
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, dim_name, dimid))
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, 'time', dimid_time))
+    dimids = (/ dimid, dimid_time /)
+
+    ! Save the array size for this variable to an array for later
+    call this%err_check(nf90_inquire_dimension(this%restart_out_hdl, dimid, len=dim_size))
+
+    if (size(thevar) /= dim_size) then
+      write(output_unit, *) 'ERROR: Size of variable, ', var_name, ' does not match dimension, ', dim_name
+      stop
+    end if
+
+    ! Create the variable
+    call this%err_check(nf90_def_var(this%restart_out_hdl, var_name, NF90_INT, dimids, varid))
+
+    ! Add attributes for the variable
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'units', units))
+
+    call this%err_check(nf90_enddef(this%restart_out_hdl))
+  end subroutine
+
+  module subroutine add_variable_i32_1d(this, var_name, thevar, dim_name, units)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    integer(i32), intent(in) :: thevar(:)
+    character(len=*), intent(in) :: dim_name
+    character(len=*), intent(in) :: units
+
+    integer(i32) :: dimid
+    integer(i32) :: dim_size
+    integer(i32) :: dimids(2)
+    integer(i32) :: dimid_time
+    integer(i32) :: varid
+
+    ! ------------------------------------------------------------------------
+    ! Enter define mode
+    call this%err_check(nf90_redef(this%restart_out_hdl))
+
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, dim_name, dimid))
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, 'time', dimid_time))
+    dimids = (/ dimid, dimid_time /)
+
+    ! Save the array size for this variable to an array for later
+    call this%err_check(nf90_inquire_dimension(this%restart_out_hdl, dimid, len=dim_size))
+
+    if (size(thevar) /= dim_size) then
+      write(output_unit, *) 'ERROR: Size of variable, ', var_name, ' does not match dimension, ', dim_name
+      stop
+    end if
+
+    ! Create the variable
+    call this%err_check(nf90_def_var(this%restart_out_hdl, var_name, NF90_INT, dimids, varid))
+
+    ! Add attributes for the variable
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'units', units))
+
+    call this%err_check(nf90_enddef(this%restart_out_hdl))
+  end subroutine
+
+  module subroutine add_variable_r32_1d(this, var_name, thevar, dim_name, units)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    real(r32), intent(in) :: thevar(:)
+    character(len=*), intent(in) :: dim_name
+    character(len=*), intent(in) :: units
+
+    integer(i32) :: dimid
+    integer(i32) :: dim_size
+    integer(i32) :: dimids(2)
+    integer(i32) :: dimid_time
+    integer(i32) :: varid
+
+    ! ------------------------------------------------------------------------
+    ! Enter define mode
+    call this%err_check(nf90_redef(this%restart_out_hdl))
+
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, dim_name, dimid))
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, 'time', dimid_time))
+    dimids = (/ dimid, dimid_time /)
+
+    ! Save the array size for this variable to an array for later
+    call this%err_check(nf90_inquire_dimension(this%restart_out_hdl, dimid, len=dim_size))
+
+    if (size(thevar) /= dim_size) then
+      write(output_unit, *) 'ERROR: Size of variable, ', var_name, ' does not match dimension, ', dim_name
+      stop
+    end if
+
+    ! Create the variable
+    call this%err_check(nf90_def_var(this%restart_out_hdl, var_name, NF90_FLOAT, dimids, varid))
+
+    ! Add attributes for the variable
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'units', units))
+
+    call this%err_check(nf90_enddef(this%restart_out_hdl))
+  end subroutine
+
+  module subroutine add_variable_r64_1d(this, var_name, thevar, dim_name, units)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    real(r64), intent(in) :: thevar(:)
+    character(len=*), intent(in) :: dim_name
+    character(len=*), intent(in) :: units
+
+    integer(i32) :: dimid
+    integer(i32) :: dim_size
+    integer(i32) :: dimids(2)
+    integer(i32) :: dimid_time
+    integer(i32) :: varid
+
+    ! ------------------------------------------------------------------------
+    ! Enter define mode
+    call this%err_check(nf90_redef(this%restart_out_hdl))
+
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, dim_name, dimid))
+    call this%err_check(nf90_inq_dimid(this%restart_out_hdl, 'time', dimid_time))
+    dimids = (/ dimid, dimid_time /)
+
+    ! Save the array size for this variable to an array for later
+    call this%err_check(nf90_inquire_dimension(this%restart_out_hdl, dimid, len=dim_size))
+
+    if (size(thevar) /= dim_size) then
+      write(output_unit, *) 'ERROR: Size of variable, ', var_name, ' does not match dimension, ', dim_name
+      stop
+    end if
+
+    ! Create the variable
+    call this%err_check(nf90_def_var(this%restart_out_hdl, var_name, NF90_DOUBLE, dimids, varid))
+
+    ! Add attributes for the variable
+    call this%err_check(nf90_put_att(this%restart_out_hdl, varid, 'units', units))
+
+    call this%err_check(nf90_enddef(this%restart_out_hdl))
+  end subroutine
+
+  module subroutine read_restart_var_logical_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    logical, pointer, intent(inout) :: data(:)
+
+    ! Local variables
+    integer(i32) :: ii
+    integer(i32) :: var_id
+    integer, allocatable :: src_int(:)
+
+    ! ------------------------------------------------------------------------
+    allocate(src_int(size(data)))
+
+    call this%err_check(nf90_inq_varid(this%restart_in_hdl, var_name, var_id))
+    call this%err_check(nf90_get_var(this%restart_in_hdl, var_id, src_int))
+
+    do ii=1, size(src_int)
+      if (src_int(ii) == 0) then
+        data(ii) = .false.
+      else
+        data(ii) = .true.
+      end if
+    end do
+  end subroutine
+
+  module subroutine read_restart_var_i32_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    integer(i32), pointer, intent(inout) :: data(:)
+
+    ! Local variables
+    integer(i32) :: var_id
+
+    call this%err_check(nf90_inq_varid(this%restart_in_hdl, var_name, var_id))
+    call this%err_check(nf90_get_var(this%restart_in_hdl, var_id, data))
+  end subroutine
+
+
+  module subroutine read_restart_var_r32_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    real(r32), pointer, intent(inout) :: data(:)
+
+    ! Local variables
+    integer(i32) :: var_id
+
+    call this%err_check(nf90_inq_varid(this%restart_in_hdl, var_name, var_id))
+    call this%err_check(nf90_get_var(this%restart_in_hdl, var_id, data))
+  end subroutine
+
+
+  module subroutine read_restart_var_r64_1d(this, var_name, data)
+    use netcdf
+    implicit none
+
+    class(Control), intent(in) :: this
+    character(len=*), intent(in) :: var_name
+    real(r64), pointer, intent(inout) :: data(:)
+
+    ! Local variables
+    integer(i32) :: var_id
+
+    call this%err_check(nf90_inq_varid(this%restart_in_hdl, var_name, var_id))
+    call this%err_check(nf90_get_var(this%restart_in_hdl, var_id, data))
+  end subroutine
+
+
+  module subroutine create_restart_netcdf(this)
+    use netcdf
+    use prms_constants, only: YEAR, MONTH, DAY
+    implicit none
+
     class(Control), intent(inout) :: this
 
-    integer(i32) :: istat
-    integer(i32) :: iunit
+    ! Local variables
+    character(len=:), allocatable :: filename
 
-    ! --------------------------------------------------------------------------
-    open_var_save_file = -1
+    filename = timestamped_filename('PRMS_RESTART_', this%end_time%values)
+    write(*, *) 'Output restart filename: ', filename
 
-    if (allocated(this%var_save_file%values)) then
-      open(newunit=iunit, file=this%var_save_file%values(1)%s, status='replace', &
-           form='unformatted', access='stream', iostat=istat)
+    ! Create the netcdf restart file
+    call this%err_check(nf90_create(filename, NF90_64BIT_OFFSET, this%restart_out_hdl))
 
-      call fErr(istat, this%var_save_file%values(1)%s, IO_OPEN)
+    ! End define mode. This tells netCDF we are done defining metadata.
+    call this%err_check(nf90_enddef(this%restart_out_hdl))
+  end subroutine
 
-      open_var_save_file = iunit
-    endif
-    end function
 
-    module subroutine cleanup_control(this)
-      class(Control) :: this
-      integer(i32) :: istat 
-        !! Srunoff class
+  module subroutine open_restart_netcdf(this)
+    use netcdf
+    use prms_constants, only: YEAR, MONTH, DAY
+    use UTILS_TIME, only: gregorian_to_julian, julian_to_gregorian
+    implicit none
 
-      logical :: is_opened
+    class(Control), intent(inout) :: this
 
-       inquire(UNIT=this%model_output_unit, OPENED=is_opened, iostat=istat)
-       if (is_opened) then
-         close(this%model_output_unit)
-       end if
-    end subroutine
+    ! Local variables
+    integer(i32) :: jul_date
+    integer(i32) :: adj_ts(6)
+    character(len=:), allocatable :: filename
+
+    jul_date = gregorian_to_julian(this%start_time%values(YEAR), this%start_time%values(MONTH), this%start_time%values(DAY))
+    adj_ts = julian_to_gregorian(jul_date - 1)
+    filename = timestamped_filename('PRMS_RESTART_', adj_ts)
+    write(*, *) 'Input restart filename: ', filename
+
+    ! Open netcdf file as read only
+    call this%err_check(nf90_open(filename, NF90_NOWRITE, this%restart_in_hdl))
+  end subroutine
+
+
+  module function timestamped_filename(prefix, timestamp) result(res)
+    use prms_constants, only: YEAR, MONTH, DAY
+    implicit none
+
+    character(len=:), allocatable :: res
+    character(len=*), intent(in) :: prefix
+      !! Prefix to use for the filename
+    integer(i32), intent(in) :: timestamp(6)
+      !! Array of timestamp values (YY, MM, DD, hh, mm, ss) to append to filename
+
+    ! Local variables
+    character(len=256) :: buf
+
+    write(buf, 9001) prefix, timestamp(YEAR), timestamp(MONTH), timestamp(DAY)
+    9001 format(A, I4, '-', I2.2, '-', I2.2, '.nc')
+
+    res = trim(buf)
+    return
+  end function
+
+  module subroutine err_check(status)
+    integer(i32), intent(in) :: status
+      !! The status returned by a netcdf call
+  end subroutine
 
 end submodule

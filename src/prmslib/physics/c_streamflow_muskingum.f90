@@ -30,7 +30,7 @@ module PRMS_MUSKINGUM
     ! Local Variables
     real(r64), allocatable, private :: currinsum(:)
     real(r64), allocatable, private :: inflow_ts(:)
-    real(r64), allocatable, private :: outflow_ts(:)
+    real(r64), pointer, private :: outflow_ts(:)
     real(r64), allocatable, private :: pastin(:)
     real(r64), allocatable, private :: pastout(:)
 
@@ -100,9 +100,10 @@ module PRMS_MUSKINGUM
   end interface
 
   interface
-    module subroutine cleanup_Muskingum(this)
-      class(Muskingum), intent(inout) :: this
+    module subroutine cleanup_Muskingum(this, ctl_data)
+      class(Muskingum), intent(in) :: this
         !! Muskingum class
+      type(Control), intent(in) :: ctl_data
     end subroutine
   end interface
 end module

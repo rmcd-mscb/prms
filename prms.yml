@@ -1,0 +1,14 @@
+# An env for building PRMS6 from source on linux and macOS
+name: prms_build
+channels:
+ - conda-forge
+ - csdms-stack
+dependencies:
+ - python=3
+ - libnetcdf
+ - netcdf-fortran
+ - fortran-compiler
+ - cmake
+ - make
+ - coretran
+ - prms

@@ -1,4 +1,5 @@
 module Control_class
+  use iso_fortran_env, only: output_unit
   use variableKind
   use m_fileIO, only: openFile, closeFile
   use rArray_class, only: rArray
@@ -72,6 +73,7 @@ module Control_class
     type(iScalar) :: gwr_transferON_OFF
     type(sArray) :: gwr_transfer_file
     type(sArray) :: humidity_day
+    type(sArray) :: humidity_module
     type(sArray) :: imperv_frac_dynamic
     type(sArray) :: imperv_stor_dynamic
     type(iScalar) :: init_vars_from_file
@@ -153,6 +155,7 @@ module Control_class
     type(sArray) :: transpend_dynamic
     type(sArray) :: var_init_file
     type(sArray) :: var_save_file
+    type(sArray) :: wind_module
     type(sArray) :: windspeed_day
     type(sArray) :: wrain_intcp_dynamic
 
@@ -163,6 +166,8 @@ module Control_class
       !! File unit to write restart information to
     integer(i32) :: restart_input_unit
       !! File unit to read restart information from
+    integer(i32) :: restart_out_hdl
+    integer(i32) :: restart_in_hdl
 
     logical :: gsflow_mode = .false.
       !! Indicates true if model_mode == 'GSFLOW'
@@ -180,22 +185,49 @@ module Control_class
     contains
       procedure, public :: init => init_Control
       procedure, public :: read => read_Control
+      procedure, public :: cleanup => cleanup_control
+      generic, public :: add_variable => add_variable_logical_1d, &
+                                         add_variable_i32_1d, &
+                                         add_variable_r32_1d, &
+                                         add_variable_r64_1d
+      generic, public :: read_restart_variable => read_restart_var_logical_1d, &
+                                                  read_restart_var_i32_1d, &
+                                                  read_restart_var_r32_1d, &
+                                                  read_restart_var_r64_1d
+      generic, public :: write_restart_variable => write_restart_var_logical_1d, &
+                                                   write_restart_var_i32_0d, &
+                                                   write_restart_var_i32_1d, &
+                                                   write_restart_var_r32_0d, &
+                                                   write_restart_var_r32_1d, &
+                                                   write_restart_var_r64_1d
+
       procedure, private :: load_output_variables
       procedure, private :: open_model_output_file
-      procedure, private :: open_var_save_file
-      procedure, public :: cleanup => cleanup_control
+      procedure, public :: add_dimension
+      procedure, public :: add_time_dimension
+      procedure, public :: create_restart_netcdf
+      procedure, public :: open_restart_netcdf
+      procedure, private :: add_variable_logical_1d
+      procedure, private :: add_variable_i32_1d
+      procedure, private :: add_variable_r32_1d
+      procedure, private :: add_variable_r64_1d
+      procedure, private :: read_restart_var_logical_1d
+      ! procedure, private :: read_restart_var_i32_0d
+      procedure, private :: read_restart_var_i32_1d
+      ! procedure, private :: read_restart_var_r32_0d
+      procedure, private :: read_restart_var_r32_1d
+      procedure, private :: read_restart_var_r64_1d
+      procedure, private :: write_restart_var_logical_1d
+      procedure, private :: write_restart_var_i32_0d
+      procedure, private :: write_restart_var_i32_1d
+      procedure, private :: write_restart_var_r32_0d
+      procedure, private :: write_restart_var_r32_1d
+      procedure, private :: write_restart_var_r64_1d
+
+      procedure, nopass, private :: err_check
+      procedure, nopass, private :: timestamped_filename
 
   end type
-
-  ! interface Control
-  !   !! Overloaded interface to instantiate the class.
-  !   module function constructor_Control(control_filename) result(this)
-  !     type(Control) :: this
-  !       !! Control Class
-  !     character(len=*), intent(in) :: control_filename
-  !       !! File name to read the control parameters from.
-  !   end function
-  ! end interface
 
   interface
     !! Overloaded interface to instantiate the class.
@@ -228,14 +260,185 @@ module Control_class
     end function
   end interface
 
+  ! interface
+  !   module function open_var_save_file(this)
+  !     !! Open the var_save_file (aka restart file)
+  !     integer(i32) :: open_var_save_file
+  !     class(Control), intent(inout) :: this
+  !       !! Control class
+  !   end function
+  ! end interface
+
   interface
-    module function open_var_save_file(this)
-      !! Open the var_save_file (aka restart file)
-      integer(i32) :: open_var_save_file
+    module subroutine write_restart_var_logical_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      logical, intent(in) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine write_restart_var_i32_0d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      integer(i32), intent(in) :: data
+    end subroutine
+  end interface
+
+  interface
+    module subroutine write_restart_var_i32_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      integer(i32), intent(in) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine write_restart_var_r32_0d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      real(r32), intent(in) :: data
+    end subroutine
+  end interface
+
+  interface
+    module subroutine write_restart_var_r32_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      real(r32), intent(in) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine write_restart_var_r64_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      real(r64), intent(in) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine add_dimension(this, dim_name, dim_size, dim_var_name, dim_var_longname, datatype, units)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: dim_name
+      integer(i32), intent(in) :: dim_size
+      character(len=*), intent(in) :: dim_var_name
+      character(len=*), intent(in) :: dim_var_longname
+      integer(i32), intent(in) :: datatype
+      character(len=*), intent(in) :: units
+    end subroutine
+  end interface
+
+  interface
+    module subroutine add_time_dimension(this, dim_name, dim_size, dim_var_name, units, calendar)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: dim_name
+      integer(i32), intent(in) :: dim_size
+      character(len=*), intent(in) :: dim_var_name
+      character(len=*), intent(in) :: units
+      character(len=*), intent(in) :: calendar
+    end subroutine
+  end interface
+
+  interface
+    module subroutine add_variable_logical_1d(this, var_name, thevar, dim_name, units)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      logical, intent(in) :: thevar(:)
+      character(len=*), intent(in) :: dim_name
+      character(len=*), intent(in) :: units
+    end subroutine
+  end interface
+
+  interface
+    module subroutine add_variable_i32_1d(this, var_name, thevar, dim_name, units)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      integer(i32), intent(in) :: thevar(:)
+      character(len=*), intent(in) :: dim_name
+      character(len=*), intent(in) :: units
+    end subroutine
+  end interface
+
+  interface
+    module subroutine add_variable_r32_1d(this, var_name, thevar, dim_name, units)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      real(r32), intent(in) :: thevar(:)
+      character(len=*), intent(in) :: dim_name
+      character(len=*), intent(in) :: units
+    end subroutine
+  end interface
+
+  interface
+    module subroutine add_variable_r64_1d(this, var_name, thevar, dim_name, units)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      real(r64), intent(in) :: thevar(:)
+      character(len=*), intent(in) :: dim_name
+      character(len=*), intent(in) :: units
+    end subroutine
+  end interface
+
+
+  interface
+    module subroutine read_restart_var_logical_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      logical, pointer, intent(inout) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine read_restart_var_i32_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      integer(i32), pointer, intent(inout) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine read_restart_var_r32_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      real(r32), pointer, intent(inout) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine read_restart_var_r64_1d(this, var_name, data)
+      class(Control), intent(in) :: this
+      character(len=*), intent(in) :: var_name
+      real(r64), pointer, intent(inout) :: data(:)
+    end subroutine
+  end interface
+
+  interface
+    module subroutine create_restart_netcdf(this)
       class(Control), intent(inout) :: this
-        !! Control class
+    end subroutine
+  end interface
+
+  interface
+    module subroutine err_check(status)
+      integer(i32), intent(in) :: status
+        !! The status returned by a netcdf call
+    end subroutine
+  end interface
+
+  interface
+    module subroutine open_restart_netcdf(this)
+      class(Control), intent(inout) :: this
+    end subroutine
+  end interface
+
+  interface
+    module function timestamped_filename(prefix, timestamp) result(res)
+      character(len=:), allocatable :: res
+      character(len=*), intent(in) :: prefix
+      integer(i32), intent(in) :: timestamp(6)
     end function
-    end interface
+  end interface
 
   interface
     module subroutine cleanup_control(this)

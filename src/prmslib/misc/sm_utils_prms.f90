@@ -234,8 +234,120 @@ contains
   end function
 
 
+  pure module function yr_mo_eq_dy_le(lh_date, rh_date) result(res)
+    use prms_constants, only: YEAR, MONTH, DAY
+    use UTILS_TIME, only: gregorian_to_julian
+    implicit none
+
+    logical :: res
+    integer(i32), intent(in) :: lh_date(3)
+    integer(i32), intent(in) :: rh_date(3)
+
+    res = (gregorian_to_julian(lh_date(YEAR), lh_date(MONTH), lh_date(DAY)) <= gregorian_to_julian(rh_date(YEAR), rh_date(MONTH), rh_date(DAY)))
+  end function
+
+
+  ! module function get_first_time(iunit, datetime) result(res)
+  !   use prms_constants, only: YEAR, MONTH, DAY
+  !   implicit none
+
+  !   ! Argument
+  !   integer(i32) :: res(3)
+  !     !! Return a date array (YY, MM, DD)
+  !   integer(i32), intent(in) :: iunit
+  !   integer(i32), intent(in) :: datetime(3)
+  !     !! Datetime to search for
+
+  !   ! Local variables
+  !   logical :: found
+  !   integer(i32) :: dy
+  !     ! Date day read from file
+  !   integer(i32) :: iret
+  !   integer(i32) :: mo
+  !     ! Date month read from file
+  !   integer(i32) :: yr
+  !     ! Date year read from file
+
+  !   ! ---------------------------------------------------------------------
+  !   read(iunit, *, IOSTAT=iret) yr, mo, dy
+  !   if (iret /= 0) then
+  !     res = 0
+  !     return
+  !   end if
+
+  !   if (yr < datetime(YEAR)) then
+  !     found = .false.
+
+  !     do while (.not. found)
+  !       read(iunit, *, IOSTAT=iret) yr, mo, dy
+  !       if (iret /= 0) then
+  !         res = 0
+  !         return
+  !       end if
+
+  !       if (yr >= datetime(YEAR)) found = .true.
+  !     end do
+  !   end if
+
+  !   if (yr == datetime(YEAR)) then
+  !     if (mo < datetime(MONTH)) then
+  !       found = .false.
+
+  !       do while (.not. found)
+  !         read(iunit, *, IOSTAT=iret) yr, mo, dy
+  !         if (iret /= 0) then
+  !           res = 0
+  !           return
+  !         end if
+
+  !         if (mo >=datetime(MONTH) .or. yr /= datetime(YEAR)) found = .true.
+  !       end do
+  !     end if
+
+  !     if (yr == datetime(YEAR) .and. mo == datetime(MONTH)) then
+  !       if (dy < datetime(DAY)) then
+  !         found = .false.
+
+  !         do while (.not. found)
+  !           read(iunit, *, IOSTAT=iret) yr, mo, dy
+  !           if (iret /= 0) then
+  !             res = 0
+  !             return
+  !           end if
+
+  !           if (dy >= datetime(DAY)) found = .true.
+  !           if (yr > datetime(YEAR) .or. mo > datetime(MONTH)) then
+  !             ! This can happen when the starting date is one or more days after the
+  !             ! date in the dynamic parameter file AND the dynamic parameter file has
+  !             ! non-continuous dates (e.g. monthly or yearly) landing on a day that is
+  !             ! before the start day (but in the same year and month).
+  !             found = .true.
+  !             backspace iunit
+  !             backspace iunit
+  !             read(iunit, *, IOSTAT=iret) yr, mo, dy
+  !           end if
+  !         end do
+  !       end if
+  !     else if (yr > datetime(YEAR)) then
+  !       backspace iunit
+  !       backspace iunit
+  !       read(iunit, *, IOSTAT=iret) yr, mo, dy
+  !     end if
+  !   else if (yr > datetime(YEAR)) then
+  !     ! This can happen when the dynamic param file has multi-year gaps in rows
+  !     ! and the start time lands in between two entries.
+  !     backspace iunit
+  !     backspace iunit
+  !     read(iunit, *, IOSTAT=iret) yr, mo, dy
+  !   end if
+
+  !   backspace iunit
+  !   res = (/yr, mo, dy/)
+  ! end function
+
   module function get_first_time(iunit, datetime) result(res)
     use prms_constants, only: YEAR, MONTH, DAY
+    use UTILS_TIME, only: gregorian_to_julian
     implicit none
 
     ! Argument
@@ -254,6 +366,8 @@ contains
       ! Date month read from file
     integer(i32) :: yr
       ! Date year read from file
+    integer(i32) :: julday_file
+    integer(i32) :: julday_model
 
     ! ---------------------------------------------------------------------
     read(iunit, *, IOSTAT=iret) yr, mo, dy
@@ -262,7 +376,10 @@ contains
       return
     end if
 
-    if (yr < datetime(YEAR)) then
+    julday_file = gregorian_to_julian(yr, mo, dy)
+    julday_model = gregorian_to_julian(datetime(YEAR), datetime(MONTH), datetime(DAY))
+
+    if (julday_file < julday_model) then
       found = .false.
 
       do while (.not. found)
@@ -272,41 +389,19 @@ contains
           return
         end if
 
-        if (yr >= datetime(YEAR)) found = .true.
+        julday_file = gregorian_to_julian(yr, mo, dy)
+        if (julday_file >= julday_model) then
+          found = .true.
+        end if
       end do
     end if
 
-    if (yr == datetime(YEAR)) then
-      if (mo < datetime(MONTH)) then
-        found = .false.
-
-        do while (.not. found)
-          read(iunit, *, IOSTAT=iret) yr, mo, dy
-          if (iret /= 0) then
-            res = 0
-            return
-          end if
-
-          if (mo >=datetime(MONTH) .or. yr /= datetime(YEAR)) found = .true.
-        end do
-      end if
-
-      if (yr == datetime(YEAR) .and. mo == datetime(MONTH)) then
-        if (dy < datetime(DAY)) then
-          found = .false.
-
-          do while (.not. found)
-            read(iunit, *, IOSTAT=iret) yr, mo, dy
-            if (iret /= 0) then
-              res = 0
-              return
-            end if
-
-            if (dy >= datetime(DAY)) found = .true.
-          end do
-        end if
-      end if
+    if (julday_file > julday_model) then
+      backspace iunit
+      backspace iunit
+      read(iunit, *, IOSTAT=iret) yr, mo, dy
     end if
+
     backspace iunit
     res = (/yr, mo, dy/)
   end function
@@ -355,12 +450,12 @@ contains
   !***********************************************************************
   ! Read file to line before data starts in file
   !***********************************************************************
-  module subroutine open_dyn_param_file(nhru, Iunit, Iret, Fname, Paramname)
+  module subroutine open_dyn_param_file(Iunit, Iret, Fname, Paramname)
     use iso_fortran_env, only: output_unit
     implicit none
 
     ! Argument
-    integer(i32), intent(in) :: nhru
+    ! integer(i32), intent(in) :: nhru
       !! Expected number of HRUs in the CBH file
     integer(i32), intent(out) :: Iunit
     integer(i32), intent(out) :: Iret
