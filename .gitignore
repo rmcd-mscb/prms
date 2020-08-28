@@ -1,3 +1,5 @@
+prms.yml
+local_build.sh
 bin/
 build/
 build_gcc/
