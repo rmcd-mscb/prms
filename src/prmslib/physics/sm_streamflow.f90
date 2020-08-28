@@ -11,8 +11,8 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
       type(Summary), intent(inout) :: model_summary
 
       ! Local Variables
+      integer(i32) :: cseg
       integer(i32) :: i
-
       integer(i32) :: iseg
       integer(i32) :: isegerr
       integer(i32) :: j
@@ -33,6 +33,7 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
                 outVar_names => ctl_data%outVar_names, &
                 param_hdl => ctl_data%param_file_hdl, &
                 print_debug => ctl_data%print_debug%value, &
+                save_vars_to_file => ctl_data%save_vars_to_file%value, &
                 segment_transferON_OFF => ctl_data%segment_transferON_OFF%value, &
                 strmflow_module => ctl_data%strmflow_module%values, &
 
@@ -80,10 +81,24 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
         this%seg_lateral_inflow = 0.0_dp
 
         allocate(this%seg_inflow(nsegment))
-        this%seg_inflow = 0.0_dp
-
         allocate(this%seg_outflow(nsegment))
-        this%seg_outflow = 0.0_dp
+
+        if (any([0, 2] == init_vars_from_file)) then
+          this%seg_outflow = this%segment_flow_init
+
+          do cseg = 1, nsegment
+            if (this%tosegment(cseg) > 0) then
+              this%seg_inflow(this%tosegment(cseg)) = this%seg_outflow(cseg)
+            end if
+          end do
+        else
+          ! ~~~~~~~~~~~~~~~~~~~~~~~~
+          ! Initialize from restart
+          call ctl_data%read_restart_variable('seg_inflow', this%seg_inflow)
+          call ctl_data%read_restart_variable('seg_outflow', this%seg_outflow)
+        endif
+
+        deallocate(this%segment_flow_init)
 
         if (cascade_flag == 0) then
           allocate(this%seg_gwflow(nsegment))
@@ -122,15 +137,6 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
           this%seg_upstream_inflow = 0.0_dp
         ! endif
 
-        allocate(this%basin_cfs)
-        allocate(this%basin_cms)
-        allocate(this%basin_gwflow_cfs)
-        allocate(this%basin_segment_storage)
-        allocate(this%basin_sroff_cfs)
-        allocate(this%basin_ssflow_cfs)
-        allocate(this%basin_stflow_in)
-        allocate(this%basin_stflow_out)
-
         ! Now initialize everything
 
         ! TODO: Uncomment once water_use_flag is added
@@ -140,8 +146,11 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
         ! endif
 
         if (init_vars_from_file == 0) then
-          this%basin_segment_storage = 0.0_dp
           this%segment_delta_flow = 0.0_dp
+        else
+          ! ~~~~~~~~~~~~~~~~~~~~~~~~
+          ! Initialize from restart
+          call ctl_data%read_restart_variable('segment_delta_flow', this%segment_delta_flow)
         endif
 
         this%flow_out = 0.0_dp
@@ -182,6 +191,9 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
           this%segment_area = sum(this%segment_hruarea)
           this%noarea_flag = any(this%segment_hruarea < DNEARZERO)
         endif
+
+        print *, 'segment_hruarea'
+        print *, this%segment_hruarea
 
         isegerr = 0
         this%segment_up = 0
@@ -241,24 +253,18 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
 
         deallocate(x_off)
 
+        if (save_vars_to_file == 1) then
+          ! Create restart variables
+          ! call ctl_data%add_variable('flow_out', this%flow_out, 'one', 'cfs')
+          call ctl_data%add_variable('seg_inflow', this%seg_inflow, 'nsegment', 'cfs')
+          call ctl_data%add_variable('seg_outflow', this%seg_outflow, 'nsegment', 'cfs')
+          call ctl_data%add_variable('segment_delta_flow', this%segment_delta_flow, 'nsegment', 'cfs')
+        end if
+
         ! Connect summary variables that need to be output
         if (outVarON_OFF == 1) then
           do jj = 1, outVar_names%size()
             select case(outVar_names%values(jj)%s)
-              case('basin_cfs')
-                call model_summary%set_summary_var(jj, this%basin_cfs)
-              case('basin_cms')
-                call model_summary%set_summary_var(jj, this%basin_cms)
-              case('basin_gwflow_cfs')
-                call model_summary%set_summary_var(jj, this%basin_gwflow_cfs)
-              case('basin_segment_storage')
-                call model_summary%set_summary_var(jj, this%basin_segment_storage)
-              case('basin_sroff_cfs')
-                call model_summary%set_summary_var(jj, this%basin_sroff_cfs)
-              case('basin_stflow_in')
-                call model_summary%set_summary_var(jj, this%basin_stflow_in)
-              case('basin_stflow_out')
-                call model_summary%set_summary_var(jj, this%basin_stflow_out)
               case('hru_outflow')
                 call model_summary%set_summary_var(jj, this%hru_outflow)
               case('seg_gwflow')
@@ -330,7 +336,7 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
     module subroutine run_Streamflow(this, ctl_data, model_basin, &
                                     model_potet, groundwater, soil, runoff, &
                                     model_time, model_solrad, model_obs)
-      use prms_constants, only: dp, CFS2CMS_CONV, ONE_24TH, NEARZERO
+      use prms_constants, only: dp, CFS2CMS_CONV, ONE_24TH, DNEARZERO
       implicit none
 
       class(Streamflow), intent(inout) :: this
@@ -424,17 +430,20 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
 
         if (cascade_flag == 1) return
 
-        ! Divide solar radiation and PET by sum of HRU area to get avarage
+        ! Divide solar radiation and PET by sum of HRU area to get average
         if (this%noarea_flag) then
           do i=1, nsegment
-            this%seginc_swrad(i) = this%seginc_swrad(i) / this%segment_hruarea(i)
-            this%seginc_potet(i) = this%seginc_potet(i) / this%segment_hruarea(i)
+            ! print *, i, ': ', this%seginc_swrad(i), this%seginc_potet(i), this%segment_hruarea(i)
+            if (this%segment_hruarea(i) > DNEARZERO) then
+              this%seginc_swrad(i) = this%seginc_swrad(i) / this%segment_hruarea(i)
+              this%seginc_potet(i) = this%seginc_potet(i) / this%segment_hruarea(i)
+            end if
           enddo
         else
           ! If there are no HRUs associated with a segment, then figure out some
           ! other way to get the solar radiation, the following is not great.
           do i=1, nsegment
-            if (this%segment_hruarea(i) > NEARZERO) then
+            if (this%segment_hruarea(i) > DNEARZERO) then
               this%seginc_swrad(i) = this%seginc_swrad(i) / this%segment_hruarea(i)
               this%seginc_potet(i) = this%seginc_potet(i) / this%segment_hruarea(i)
             elseif (this%tosegment(i) > 0) then
@@ -454,8 +463,19 @@ submodule (PRMS_STREAMFLOW) sm_streamflow
       end associate
     end subroutine
 
-    module subroutine cleanup_Streamflow(this)
-      class(Streamflow), intent(inout) :: this
+    module subroutine cleanup_Streamflow(this, ctl_data)
+      class(Streamflow), intent(in) :: this
         !! Streamflow class
+      type(Control), intent(in) :: ctl_data
+
+      associate(save_vars_to_file => ctl_data%save_vars_to_file%value)
+        if (save_vars_to_file == 1) then
+          ! Write out this module's restart variables
+          ! call ctl_data%write_restart_variable('flow_out', this%flow_out)
+          call ctl_data%write_restart_variable('seg_inflow', this%seg_inflow)
+          call ctl_data%write_restart_variable('seg_outflow', this%seg_outflow)
+          call ctl_data%write_restart_variable('segment_delta_flow', this%segment_delta_flow)
+        end if
+      end associate
     end subroutine
 end submodule

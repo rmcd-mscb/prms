@@ -24,16 +24,6 @@ submodule (Simulation_class) sm_simulation
         this%model_summary = Summary(ctl_data, this%model_basin, this%model_time)
       end if
 
-      ! if (ctl_data%basinOutON_OFF%value == 1) then
-      !   this%summary_by_basin = Basin_summary_ptr(ctl_data)
-      ! endif
-
-      ! if (ctl_data%nhruOutON_OFF%value > 0) then
-      !   this%summary_by_hru = Nhru_summary_ptr(ctl_data, this%model_basin, this%model_time)
-      ! endif
-
-      ! this%summary_crap = Summary(ctl_data, this%model_basin, this%model_time)
-
       ! TODO: Only used by streamflow_muskingum currently. Needs streamflow_cfs when using
       !       replacement flow (obsin_segment). The Obs stuff is not completed so replacement
       !       flows will crash the model.
@@ -41,25 +31,63 @@ submodule (Simulation_class) sm_simulation
 
       allocate(Temperature_hru::this%model_temp)
       call this%model_temp%init(ctl_data, this%model_basin, this%model_summary)
-      ! this%model_temp = Temperature_hru(ctl_data, this%model_basin, this%model_summary)
 
       allocate(Precipitation_hru::this%model_precip)
       call this%model_precip%init(ctl_data, this%model_basin, this%model_temp, this%model_summary)
-      ! this%model_precip = Precipitation_hru(ctl_data, this%model_basin, this%model_temp, this%model_summary)
 
       allocate(Climateflow::this%climate)
       call this%climate%init(ctl_data, this%model_basin, this%model_summary)
-      ! this%climate = Climateflow(ctl_data, this%model_basin, this%model_summary)
 
       ! TODO: PAN - add logic for other solar radiation modules
       allocate(Solrad_degday::this%solrad)
       call this%solrad%init(ctl_data, this%model_basin, this%model_summary)
-      ! this%solrad = Solrad_degday(ctl_data, this%model_basin, this%model_summary)
+
+      ! Example of accessing a variable in the instantiated class
+      ! select type(solrad => this%solrad)
+      !   type is (Solrad_degday)
+      !     print *, sizeof(solrad%dday_intcp)
+      ! end select
 
       ! TODO: PAN - add logic for other transpiration modules
       allocate(Transp_tindex::this%transpiration)
       call this%transpiration%init(ctl_data, this%model_basin, this%model_temp, this%model_summary)
       ! this%transpiration = Transp_tindex(ctl_data, this%model_basin, this%model_temp)
+
+      ! Humidity
+      if (allocated(ctl_data%humidity_module%values)) then
+        select case(ctl_data%humidity_module%values(1)%s)
+          case('humidity_hru')
+            allocate(Humidity_hru::this%model_humidity)
+          case('humidity_per')
+            allocate(Humidity_per::this%model_humidity)
+          case('humidity_sta')
+            allocate(Humidity_sta::this%model_humidity)
+          case default
+            ! NOTE: This defaults humidity_hru to zero
+            allocate(Humidity::this%model_humidity)
+        end select
+      else
+        allocate(Humidity::this%model_humidity)
+      end if
+
+      call this%model_humidity%init(ctl_data, this%model_basin)
+
+      ! Wind
+      if (allocated(ctl_data%wind_module%values)) then
+        select case(ctl_data%wind_module%values(1)%s)
+          case('wind_hru')
+            allocate(Wind_hru::this%model_wind)
+          case('wind_sta')
+            allocate(Wind_sta::this%model_wind)
+          case default
+            ! NOTE: This defaults humidity_hru to zero
+            allocate(Wind::this%model_wind)
+        end select
+      else
+        allocate(Wind::this%model_wind)
+      end if
+
+      call this%model_wind%init(ctl_data, this%model_basin)
 
       ! TODO: PAN - add logic for other potential ET modules
       allocate(Potet_jh::this%potet)
@@ -86,7 +114,13 @@ submodule (Simulation_class) sm_simulation
       call this%groundwater%init(ctl_data, this%model_basin, this%climate, this%intcp, this%soil, this%runoff, this%model_summary)
       ! this%groundwater = Gwflow(ctl_data, this%model_basin, this%climate, this%intcp, this%soil, this%runoff, this%model_summary)
 
-      allocate(Muskingum::this%model_streamflow)
+      select case(ctl_data%strmflow_module%values(1)%s)
+        case('muskingum')
+          allocate(Muskingum::this%model_streamflow)
+        case('strmflow_in_out')
+          allocate(Strmflow_in_out::this%model_streamflow)
+      end select
+      ! TODO: Should there be a default case?
       call this%model_streamflow%init(ctl_data, this%model_basin, this%model_time, this%model_summary)
       ! this%model_muskingum = Muskingum(ctl_data, this%model_basin, this%model_time, this%model_summary)
 
@@ -104,7 +138,7 @@ submodule (Simulation_class) sm_simulation
 
       ! ------------------------------------------------------------------------
       do
-        if (.not. this%model_time%next(ctl_data)) exit
+        if (.not. this%model_time%next()) exit
         ! print *, this%model_time%Nowyear, this%model_time%Nowmonth, this%model_time%Nowday
 
         ! write(output_unit, 9008) 'TIME: ', this%model_time%Nowtime(1:3)
@@ -156,9 +190,9 @@ submodule (Simulation_class) sm_simulation
 
         ! print *, '10'
         call this%model_streamflow%run(ctl_data, this%model_basin, &
-                                      this%potet, this%groundwater, this%soil, &
-                                      this%runoff, this%model_time, this%solrad, &
-                                      this%model_obs)
+                                       this%potet, this%groundwater, this%soil, &
+                                       this%runoff, this%model_time, this%solrad, &
+                                       this%model_obs)
 
         if (ctl_data%outVarON_OFF%value == 1) then
           call this%model_summary%run(ctl_data, this%model_time, this%model_basin)
@@ -181,24 +215,25 @@ submodule (Simulation_class) sm_simulation
       type(Control), intent(in) :: ctl_data
 
       ! ------------------------------------------------------------------------
+
       if (ctl_data%outVarON_OFF%value == 1) then
         call this%model_summary%cleanup()
       end if
 
-      call this%runoff%cleanup()
-      ! if (ctl_data%save_vars_to_file%value == 1) then
-      !   ! Write the important model information to the restart file
-      !   write(ctl_data%restart_output_unit) this%model_time%timestep, &
-      !                                       ctl_data%nhru%value, &
-      !                                       ctl_data%temp_module%values(1)%s, &
-      !                                       ctl_data%model_mode%values(1)%s
-      !
-      !   call this%climate%cleanup(ctl_data)
-      !   call this%model_obs%cleanup(ctl_data)
-      !   call this%transpiration%cleanup(ctl_data)
-      ! endif
+      call this%model_time%cleanup(ctl_data)
+      call this%model_basin%cleanup(ctl_data)
+      call this%climate%cleanup(ctl_data)
+      call this%transpiration%cleanup(ctl_data)
+      call this%intcp%cleanup(ctl_data)
+      call this%snow%cleanup(ctl_data)
+      call this%runoff%cleanup(ctl_data)
+      call this%soil%cleanup(ctl_data)
+      call this%groundwater%cleanup(ctl_data)
+
+      call this%model_streamflow%cleanup(ctl_data)
+
       call this%model_waterbal%cleanup()
-      
+
       call ctl_data%cleanup()
 
     end subroutine

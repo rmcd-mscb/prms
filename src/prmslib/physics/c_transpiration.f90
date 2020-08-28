@@ -18,15 +18,13 @@ module PRMS_TRANSPIRATION
   character(len=*), parameter :: MODVERSION = '2018-08-30 13:51:00Z'
 
   type, extends(ModelBase) :: Transpiration
-    ! integer(i32) :: basin_transp_on
-    logical :: basin_transp_on
-
+    ! Parameters
     logical, pointer :: transp_on(:)
-    ! integer(i32), allocatable :: transp_on(:)
 
   contains
     procedure, public :: init => init_Transpiration
     procedure, public :: run => run_Transpiration
+    procedure, public :: cleanup => cleanup_Transpiration
   end type
 
   interface
@@ -54,4 +52,11 @@ module PRMS_TRANSPIRATION
     end subroutine
   end interface
 
+  interface
+    module subroutine cleanup_Transpiration(this, ctl_data)
+      class(Transpiration), intent(in) :: this
+        !! Transpiration class
+      type(Control), intent(in) :: ctl_data
+    end subroutine
+  end interface
 end module

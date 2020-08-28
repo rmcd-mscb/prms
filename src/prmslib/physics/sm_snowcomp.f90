@@ -18,6 +18,7 @@ contains
     ! integer(i32) :: idx1D
     integer(i32) :: j
     integer(i32) :: jj
+    integer(i32) :: sd
 
     ! real(r32), allocatable :: snarea_curve_2d(:, :)
     ! real(r32), pointer, contiguous :: snarea_curve_2d(:, :)
@@ -28,15 +29,12 @@ contains
               outVar_names => ctl_data%outVar_names, &
               param_hdl => ctl_data%param_file_hdl, &
               print_debug => ctl_data%print_debug%value, &
-              rst_unit => ctl_data%restart_output_unit, &
+              save_vars_to_file => ctl_data%save_vars_to_file%value, &
 
               nhru => model_basin%nhru, &
               nmonths => model_basin%nmonths, &
               active_hrus => model_basin%active_hrus, &
               active_mask => model_basin%active_mask, &
-              basin_area_inv => model_basin%basin_area_inv, &
-              hru_area => model_basin%hru_area, &
-              hru_area_dble => model_basin%hru_area_dble, &
               hru_route_order => model_basin%hru_route_order, &
 
               pkwater_equiv => model_climate%pkwater_equiv)
@@ -84,8 +82,11 @@ contains
       allocate(this%snarea_thresh(nhru))
       call param_hdl%get_variable('snarea_thresh', this%snarea_thresh)
 
-      allocate(this%snowpack_init(nhru))
-      call param_hdl%get_variable('snowpack_init', this%snowpack_init)
+      if (any([0, 2, 3] == init_vars_from_file)) then
+        ! This isn't needed when snowcomp is initialized from a restart file
+        allocate(this%snowpack_init(nhru))
+        call param_hdl%get_variable('snowpack_init', this%snowpack_init)
+      end if
 
       allocate(this%cecn_coef(nhru, nmonths))
       call param_hdl%get_variable('cecn_coef', this%cecn_coef)
@@ -138,31 +139,16 @@ contains
       ! snarea_curve_2d => get_array(param_data%snarea_curve%values, (/11, nhru/))
 
       this%ai = 0.0_dp
-      this%albedo = 0.0
       this%frac_swe = 0.0
       this%freeh2o = 0.0
-      this%iasw = .false.
-      this%int_alb = 1
-      this%iso = 1
-      this%lso = 0
-      this%lst = .false.
-      this%mso = 1
-      this%pk_def = 0.0
       this%pk_den = 0.0
       this%pk_depth = 0.0_dp
       this%pk_ice = 0.0
       this%pk_precip = 0.0
-      this%pk_temp = 0.0
-      this%pksv = 0.0_dp
       this%pptmix_nopack = .false.
-      this%salb = 0.0
-      this%scrv = 0.0_dp
-      this%slst = 0.0
       this%snow_evap = 0.0
       this%snowcov_area = 0.0
-      this%snowcov_areasv = 0.0
       this%snowmelt = 0.0
-      this%snsv = 0.0
       this%tcal = 0.0
 
       this%acum = ACUM_INIT
@@ -173,27 +159,31 @@ contains
       this%deninv = 1.0_dp / dble(this%den_init)
       this%denmaxinv = 1.0_dp / dble(this%den_max)
 
+      sd = this%ndeplval / 11
+      allocate(this%snarea_curve_2d(11, sd))
+      this%snarea_curve_2d = reshape(this%snarea_curve, (/11, sd/))
+
       ! this%settle_const_dble = dble(settle_const)
-
-      allocate(this%basin_pk_precip)
-      allocate(this%basin_pweqv)
-      allocate(this%basin_snowcov)
-      allocate(this%basin_snowdepth)
-      allocate(this%basin_snowevap)
-      allocate(this%basin_snowmelt)
-      allocate(this%basin_tcal)
-
-      this%basin_pk_precip = 0.0_dp
-      this%basin_snowevap = 0.0_dp
-      this%basin_snowmelt = 0.0_dp
-      this%basin_tcal = 0.0_dp
 
       ! TODO: Hookup the read from restart file code
       ! if ( Init_vars_from_file>0 ) call snowcomp_restart(1)
 
-      if (init_vars_from_file==0 .or. init_vars_from_file==2 .or. init_vars_from_file==3) then
-        allocate(this%snarea_curve_2d(11, nhru))
-        this%snarea_curve_2d = reshape(this%snarea_curve, (/11, nhru/))
+      if (any([0, 2, 3] == init_vars_from_file)) then
+        this%albedo = 0.0
+        this%iasw = .false.
+        this%int_alb = 1
+        this%iso = 1
+        this%lso = 0
+        this%lst = .false.
+        this%mso = 1
+        this%pk_def = 0.0
+        this%pk_temp = 0.0
+        this%pksv = 0.0_dp
+        this%salb = 0.0
+        this%scrv = 0.0_dp
+        this%slst = 0.0
+        this%snowcov_areasv = 0.0
+        this%snsv = 0.0
 
         pkwater_equiv = dble(this%snowpack_init)
 
@@ -240,16 +230,37 @@ contains
         !   endif
         ! enddo
 
-        this%basin_pweqv = sum(pkwater_equiv * hru_area_dble, mask=active_mask) * basin_area_inv
-        this%basin_snowcov = sum(dble(this%snowcov_area * hru_area), mask=active_mask) * basin_area_inv
-        this%basin_snowdepth = sum(this%pk_depth * hru_area_dble, mask=active_mask) * basin_area_inv
-
         ! NOTE: can deallocate parameter snowpack_init at this point
         deallocate(this%snowpack_init)
 
         this%pkwater_ante = pkwater_equiv
         this%pss = pkwater_equiv
         this%pst = pkwater_equiv
+      else
+        ! ~~~~~~~~~~~~~~~~~~~~~~~~
+        ! Initialize from restart
+        call ctl_data%read_restart_variable('albedo', this%albedo)
+        call ctl_data%read_restart_variable('freeh2o', this%freeh2o)
+        call ctl_data%read_restart_variable('iasw', this%iasw)
+        call ctl_data%read_restart_variable('int_alb', this%int_alb)
+        call ctl_data%read_restart_variable('iso', this%iso)
+        call ctl_data%read_restart_variable('lso', this%lso)
+        call ctl_data%read_restart_variable('lst', this%lst)
+        call ctl_data%read_restart_variable('mso', this%mso)
+        call ctl_data%read_restart_variable('pk_def', this%pk_def)
+        call ctl_data%read_restart_variable('pk_depth', this%pk_depth)
+        call ctl_data%read_restart_variable('pk_den', this%pk_den)
+        call ctl_data%read_restart_variable('pk_ice', this%pk_ice)
+        call ctl_data%read_restart_variable('pk_temp', this%pk_temp)
+        call ctl_data%read_restart_variable('pksv', this%pksv)
+        call ctl_data%read_restart_variable('pss', this%pss)
+        call ctl_data%read_restart_variable('pst', this%pst)
+        call ctl_data%read_restart_variable('salb', this%salb)
+        call ctl_data%read_restart_variable('scrv', this%scrv)
+        call ctl_data%read_restart_variable('slst', this%slst)
+        call ctl_data%read_restart_variable('snowcov_area', this%snowcov_area)
+        call ctl_data%read_restart_variable('snowcov_areasv', this%snowcov_areasv)
+        call ctl_data%read_restart_variable('snsv', this%snsv)
       endif
 
       ! Connect summary variables that need to be output
@@ -258,22 +269,12 @@ contains
           ! TODO: This is where the daily basin values are linked based on
           !       what was requested in basinOutVar_names.
           select case(outVar_names%values(jj)%s)
+            case('ai')
+              call model_summary%set_summary_var(jj, this%ai)
             case('albedo')
               call model_summary%set_summary_var(jj, this%albedo)
-            case('basin_pk_precip')
-              call model_summary%set_summary_var(jj, this%basin_pk_precip)
-            case('basin_pweqv')
-              call model_summary%set_summary_var(jj, this%basin_pweqv)
-            case('basin_snowcov')
-              call model_summary%set_summary_var(jj, this%basin_snowcov)
-            case('basin_snowdepth')
-              call model_summary%set_summary_var(jj, this%basin_snowdepth)
-            case('basin_snowevap')
-              call model_summary%set_summary_var(jj, this%basin_snowevap)
-            case('basin_snowmelt')
-              call model_summary%set_summary_var(jj, this%basin_snowmelt)
-            case('basin_tcal')
-              call model_summary%set_summary_var(jj, this%basin_tcal)
+            case('frac_swe')
+              call model_summary%set_summary_var(jj, this%frac_swe)
             case('freeh2o')
               call model_summary%set_summary_var(jj, this%freeh2o)
             case('pk_def')
@@ -286,12 +287,16 @@ contains
               call model_summary%set_summary_var(jj, this%pk_precip)
             case('pk_temp')
               call model_summary%set_summary_var(jj, this%pk_temp)
+            case('pst')
+              call model_summary%set_summary_var(jj, this%pst)
             case('snow_evap')
               call model_summary%set_summary_var(jj, this%snow_evap)
             case('snowcov_area')
               call model_summary%set_summary_var(jj, this%snowcov_area)
             case('snowmelt')
               call model_summary%set_summary_var(jj, this%snowmelt)
+            case('tcal')
+              call model_summary%set_summary_var(jj, this%tcal)
             case('pptmix')    ! from precipitation
               call model_summary%set_summary_var(jj, this%pptmix)
             case('newsnow')   ! from precipitation
@@ -301,6 +306,35 @@ contains
           end select
         enddo
       endif
+
+      if (save_vars_to_file == 1) then
+        ! Create restart variables
+        ! call ctl_data%add_variable('deninv', this%et_type, 'nhru', 'none')
+        ! call ctl_data%add_variable('denmaxinv', this%gravity_stor_res, 'nhru', 'none')
+        call ctl_data%add_variable('albedo', this%albedo, 'nhru', 'decimal fraction')
+        call ctl_data%add_variable('freeh2o', this%freeh2o, 'nhru', 'inches')
+        call ctl_data%add_variable('iasw', this%iasw, 'nhru', 'none')
+        call ctl_data%add_variable('int_alb', this%int_alb, 'nhru', 'none')
+        call ctl_data%add_variable('iso', this%iso, 'nhru', 'none')
+        call ctl_data%add_variable('lso', this%lso, 'nhru', 'number of iterations')
+        call ctl_data%add_variable('lst', this%lst, 'nhru', 'none')
+        call ctl_data%add_variable('mso', this%mso, 'nhru', 'none')
+        call ctl_data%add_variable('pk_def', this%pk_def, 'nhru', 'Langleys')
+        call ctl_data%add_variable('pk_den', this%pk_den, 'nhru', 'gm/cm3')
+        call ctl_data%add_variable('pk_depth', this%pk_depth, 'nhru', 'inches')
+        call ctl_data%add_variable('pk_ice', this%pk_ice, 'nhru', 'inches')
+        call ctl_data%add_variable('pk_temp', this%pk_temp, 'nhru', 'degreeC')
+        call ctl_data%add_variable('pksv', this%pksv, 'nhru', 'inches')
+        ! call ctl_data%add_variable('pkwater_ante', this%pkwater_ante, 'nhru', 'inches')
+        call ctl_data%add_variable('pss', this%pss, 'nhru', 'inches')
+        call ctl_data%add_variable('pst', this%pst, 'nhru', 'inches')
+        call ctl_data%add_variable('salb', this%salb, 'nhru', 'days')
+        call ctl_data%add_variable('scrv', this%scrv, 'nhru', '')
+        call ctl_data%add_variable('slst', this%slst, 'nhru', 'days')
+        call ctl_data%add_variable('snowcov_area', this%snowcov_area, 'nhru', 'decimal fraction')
+        call ctl_data%add_variable('snowcov_areasv', this%snowcov_areasv, 'nhru', 'decimal fraction')
+        call ctl_data%add_variable('snsv', this%snsv, 'nhru', 'inches')
+      end if
     end associate
   end subroutine
 
@@ -364,15 +398,12 @@ contains
               nmonths => model_basin%nmonths, &
               active_hrus => model_basin%active_hrus, &
               active_mask => model_basin%active_mask, &
-              basin_area_inv => model_basin%basin_area_inv, &
               cov_type => model_basin%cov_type, &
-              hru_area => model_basin%hru_area, &
-              hru_area_dble => model_basin%hru_area_dble, &
               hru_type => model_basin%hru_type, &
               hru_route_order => model_basin%hru_route_order, &
 
-              basin_horad => model_solrad%basin_horad, &
-              orad => model_solrad%orad, &
+              orad_hru => model_solrad%orad_hru, &
+              soltab_horad_potsw => model_solrad%soltab_horad_potsw, &
               swrad => model_solrad%swrad, &
 
               pkwater_equiv => model_climate%pkwater_equiv, &
@@ -390,20 +421,11 @@ contains
               net_rain => intcp%net_rain, &
               net_snow => intcp%net_snow)
 
-      ! Set the basin totals to 0 (recalculated at the end of the time step)
-      ! this%basin_pk_precip = 0.0_dp
-      ! this%basin_pweqv = 0.0_dp
-      ! this%basin_snowcov = 0.0_dp
-      ! this%basin_snowdepth = 0.0_dp
-      ! this%basin_snowevap = 0.0_dp
-      ! this%basin_snowmelt = 0.0_dp
-      ! this%basin_tcal = 0.0_dp
-
       cals = 0.0  ! initialize
 
       ! Calculate the ratio of measured radiation to potential radiation
       ! (used as a cumulative indicator of cloud cover)
-      trd = orad / sngl(basin_horad)  ! [dimensionless ratio]
+      ! trd = orad / sngl(basin_horad)  ! [dimensionless ratio]
 
       ! By default, the precipitation added to snowpack, snowmelt,
       ! and snow evaporation are 0.
@@ -439,6 +461,8 @@ contains
         ! Skip the HRU if it is a lake
         if (hru_type(chru) == LAKE) cycle
 
+        trd = orad_hru(chru) / soltab_horad_potsw(day_of_year, chru)
+
         ! 2D index to 1D
         idx1D = (curr_month - 1) * nhru + chru
 
@@ -457,12 +481,13 @@ contains
 
         ! HRU SET-UP - SET DEFAULT VALUES AND/OR BASE CONDITIONS FOR THIS TIME PERIOD
         !**************************************************************
-        ! ! Keep track of the pack water equivalent before it is changed
-        ! ! by precipitation during this time step.
+        ! Keep track of the pack water equivalent before it is changed
+        ! by precipitation during this time step.
+        ! TODO: PAN: Why can't this be set outside of the loop?
         this%pkwater_ante(chru) = pkwater_equiv(chru)
 
-        ! ! By default, the precipitation added to snowpack, snowmelt,
-        ! ! and snow evaporation are 0.
+        ! By default, the precipitation added to snowpack, snowmelt,
+        ! and snow evaporation are 0.
         this%pk_precip(chru) = 0.0  ! [inches]
         this%snowmelt(chru) = 0.0  ! [inches]
         this%snow_evap(chru) = 0.0  ! [inches]
@@ -513,8 +538,12 @@ contains
         ! to the snowpack.
         ! WARNING: pan - wouldn't this be pkwater_equiv > DNEARZERO?
         if ((pkwater_equiv(chru) > 0.0_dp .and. net_ppt(chru) > 0.0) .or. net_snow(chru) > 0.0) then
+          ! DEBUG:
+          ! write(*,*) 'pkwater_equiv, net_ppt, net_snow', pkwater_equiv(chru), net_ppt(chru), net_snow(chru), this%pptmix(chru), this%newsnow(chru)
+          ! write(*,*) 'pst, ai', this%pst(chru), this%ai(chru)
           call this%ppt_to_pack(model_climate, model_precip, curr_month, chru, &
                                 ctl_data, intcp, model_temp)
+          ! write(*,*) 'pst, ai, pkwater_equiv', this%pst(chru), this%ai(chru), pkwater_equiv(chru)
         endif
 
         if (pkwater_equiv(chru) > 0.0_dp) then
@@ -755,15 +784,6 @@ contains
         endif
       enddo
 
-
-      this%basin_snowmelt = sum(dble(this%snowmelt * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_pweqv = sum(pkwater_equiv * hru_area_dble, mask=active_mask) * basin_area_inv
-      this%basin_snowevap = sum(dble(this%snow_evap * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_snowcov = sum(dble(this%snowcov_area * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_pk_precip = sum(dble(this%pk_precip * hru_area), mask=active_mask) * basin_area_inv
-      this%basin_snowdepth = sum(this%pk_depth * hru_area_dble, mask=active_mask) * basin_area_inv
-      this%basin_tcal = sum(dble(this%tcal * hru_area), mask=active_mask) * basin_area_inv
-
       if (print_debug == 9) then
         print 9001, day_of_year, (transp_on(chru), chru=1, nhru)
         print 9001, day_of_year, (net_snow(chru), chru=1, nhru)
@@ -774,6 +794,42 @@ contains
     end associate
   end subroutine
 
+
+  module subroutine cleanup_Snowcomp(this, ctl_data)
+    class(Snowcomp) :: this
+      !! Snowcomp class
+    type(Control), intent(in) :: ctl_data
+
+    ! --------------------------------------------------------------------------
+    associate(save_vars_to_file => ctl_data%save_vars_to_file%value)
+      if (save_vars_to_file == 1) then
+        ! Write out this module's restart variables
+        call ctl_data%write_restart_variable('albedo', this%albedo)
+        call ctl_data%write_restart_variable('freeh2o', this%freeh2o)
+        call ctl_data%write_restart_variable('iasw', this%iasw)
+        call ctl_data%write_restart_variable('int_alb', this%int_alb)
+        call ctl_data%write_restart_variable('iso', this%iso)
+        call ctl_data%write_restart_variable('lso', this%lso)
+        call ctl_data%write_restart_variable('lst', this%lst)
+        call ctl_data%write_restart_variable('mso', this%mso)
+        call ctl_data%write_restart_variable('pk_def', this%pk_def)
+        call ctl_data%write_restart_variable('pk_den', this%pk_den)
+        call ctl_data%write_restart_variable('pk_depth', this%pk_depth)
+        call ctl_data%write_restart_variable('pk_ice', this%pk_ice)
+        call ctl_data%write_restart_variable('pk_temp', this%pk_temp)
+        call ctl_data%write_restart_variable('pksv', this%pksv)
+        call ctl_data%write_restart_variable('pkwater_ante', this%pkwater_ante)
+        call ctl_data%write_restart_variable('pss', this%pss)
+        call ctl_data%write_restart_variable('pst', this%pst)
+        call ctl_data%write_restart_variable('salb', this%salb)
+        call ctl_data%write_restart_variable('scrv', this%scrv)
+        call ctl_data%write_restart_variable('slst', this%slst)
+        call ctl_data%write_restart_variable('snowcov_area', this%snowcov_area)
+        call ctl_data%write_restart_variable('snowcov_areasv', this%snowcov_areasv)
+        call ctl_data%write_restart_variable('snsv', this%snsv)
+      end if
+    end associate
+  end subroutine
 
   !***********************************************************************
   !      Subroutine to compute changes in snowpack when a net gain in
@@ -1994,11 +2050,19 @@ contains
       ! Set ai to the maximum packwater equivalent, but no higher than the
       ! threshold for complete snow cover.
       ai = pst  ! [inches]
+      ! DEBUG:
+      ! write(*,*) '   ai, pst', ai, pst
       if (ai > this%snarea_thresh(chru)) ai = dble(this%snarea_thresh(chru))  ! [inches]
 
       ! Calculate the ratio of the current packwater equivalent to the maximum
       ! packwater equivalent for the given snowpack.
-      frac_swe = sngl(pkwater_equiv / ai)  ! [fraction]
+      ! DEBUG:
+      ! write(*,*) chru, pkwater_equiv, ai, dble(this%snarea_thresh(chru))
+      if (ai == 0.0) then
+        frac_swe = 0.0
+      else
+        frac_swe = sngl(pkwater_equiv / ai)  ! [fraction]
+      end if
 
       ! There are 3 potential conditions for the snow area curve:
       ! A. snow is accumulating and the pack is currently at its maximum level.
@@ -2030,7 +2094,7 @@ contains
           ! (2.1) There was new snow...
 
           ! New snow will always reset the snow cover to 100%. However, different
-          ! states changes depending  on whether the previous snow area condition
+          ! states change depending  on whether the previous snow area condition
           ! was on the curve or being interpolated between the curve and 100%.
           ! 2 options below (if-then, else)
           ! if (iasw > 0) then
