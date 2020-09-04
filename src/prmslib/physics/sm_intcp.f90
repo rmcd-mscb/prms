@@ -16,8 +16,8 @@ contains
     integer(i32) :: ierr
 
     ! -------------------------------------------------------------------------
-    associate(covden_sum_dynamic => ctl_data%covden_sum_dynamic%values(1), &
-              covden_win_dynamic => ctl_data%covden_win_dynamic%values(1), &
+    associate(covden_sum_dynamic => ctl_data%covden_sum_dynamic, &
+              covden_win_dynamic => ctl_data%covden_win_dynamic, &
               dyn_covden_flag => ctl_data%dyn_covden_flag%value, &
               dyn_intcp_flag => ctl_data%dyn_intcp_flag%value, &
               init_vars_from_file => ctl_data%init_vars_from_file%value, &
@@ -26,10 +26,10 @@ contains
               param_hdl => ctl_data%param_file_hdl, &
               print_debug => ctl_data%print_debug%value, &
               save_vars_to_file => ctl_data%save_vars_to_file%value, &
-              snow_intcp_dynamic => ctl_data%snow_intcp_dynamic%values(1), &
-              srain_intcp_dynamic => ctl_data%srain_intcp_dynamic%values(1), &
+              snow_intcp_dynamic => ctl_data%snow_intcp_dynamic, &
+              srain_intcp_dynamic => ctl_data%srain_intcp_dynamic, &
               start_time => ctl_data%start_time%values, &
-              wrain_intcp_dynamic => ctl_data%wrain_intcp_dynamic%values(1), &
+              wrain_intcp_dynamic => ctl_data%wrain_intcp_dynamic, &
 
               nhru => model_basin%nhru, &
 
@@ -167,7 +167,7 @@ contains
 
       if (any([1, 3, 5, 7]==dyn_intcp_flag)) then
         ! Open the wrain_intcp_dynamic file
-        call open_dyn_param_file(this%wrain_intcp_unit, ierr, wrain_intcp_dynamic%s, 'wrain_intcp_dynamic')
+        call open_dyn_param_file(this%wrain_intcp_unit, ierr, wrain_intcp_dynamic%values(1)%s, 'wrain_intcp_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic wrain_intcp parameter file.'
           stop
@@ -181,7 +181,7 @@ contains
 
       if (any([2, 3, 6, 7]==dyn_intcp_flag)) then
         ! Open the srain_intcp_dynamic file
-        call open_dyn_param_file(this%srain_intcp_unit, ierr, srain_intcp_dynamic%s, 'srain_intcp_dynamic')
+        call open_dyn_param_file(this%srain_intcp_unit, ierr, srain_intcp_dynamic%values(1)%s, 'srain_intcp_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic srain_intcp parameter file.'
           stop
@@ -195,7 +195,7 @@ contains
 
       if (any([4, 5, 6, 7]==dyn_intcp_flag)) then
         ! Open the snow_intcp_dynamic file
-        call open_dyn_param_file(this%snow_intcp_unit, ierr, snow_intcp_dynamic%s, 'snow_intcp_dynamic')
+        call open_dyn_param_file(this%snow_intcp_unit, ierr, snow_intcp_dynamic%values(1)%s, 'snow_intcp_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic snow_intcp parameter file.'
           stop
@@ -209,7 +209,7 @@ contains
 
       if (any([1, 3]==dyn_covden_flag)) then
         ! Open the covden_sum_dynamic file
-        call open_dyn_param_file(this%covden_sum_unit, ierr, covden_sum_dynamic%s, 'covden_sum_dynamic')
+        call open_dyn_param_file(this%covden_sum_unit, ierr, covden_sum_dynamic%values(1)%s, 'covden_sum_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic covden_sum parameter file.'
           stop
@@ -223,7 +223,7 @@ contains
 
       if (any([2, 3]==dyn_covden_flag)) then
         ! Open the covden_win_dynamic file
-        call open_dyn_param_file(this%covden_win_unit, ierr, covden_win_dynamic%s, 'covden_win_dynamic')
+        call open_dyn_param_file(this%covden_win_unit, ierr, covden_win_dynamic%values(1)%s, 'covden_win_dynamic')
         if (ierr /= 0) then
           write(output_unit, *) MODNAME, ' ERROR opening dynamic covden_win parameter file.'
           stop
