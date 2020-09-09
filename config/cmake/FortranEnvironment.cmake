@@ -63,8 +63,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
 
   # Set flags for all build types
   # set(CMAKE_Fortran_FLAGS " -std=f2008 -ffree-line-length-none -fno-common -fall-intrinsics -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -std=f2008 -ffree-line-length-none -fno-common -fall-intrinsics -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans")
-
+  #set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -std=f2008 -ffree-line-length-none -fno-common -fall-intrinsics -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans -fbacktrace ")
+  # rmcd set for runtime segfault testing
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -fbacktrace -Wall -fcheck=all -std=f2008 -ffree-line-length-none -fno-common -fall-intrinsics -fno-unsafe-math-optimizations -frounding-math -fsignaling-nans")
+ 
   if(BUILD_SHARED_LIBS)
     # Add any shared library related stuff here
 
@@ -114,8 +116,8 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -Wuninitialized")
 
   #set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -pg -fbacktrace -fcheck=all -finit-real=nan -ffpe-trap=zero,overflow,underflow -Waliasing -Wampersand -Wconversion -Wsurprising -Wc-binding-type -Wintrinsics-std -Wtabs -Wintrinsic-shadow -Wline-truncation -Wtarget-lifetime -Wreal-q-constant")
-  #set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -pg -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -Wall  -Waliasing -Wampersand -Wconversion -Wsurprising -Wc-binding-type -Wintrinsics-std -Wtabs -Wintrinsic-shadow -Wline-truncation -Wtarget-lifetime -Wreal-q-constant")
-  set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -pg -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,invalid -Wall -Wno-unused-dummy-argument")
+  set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -g -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,underflow -Wall  -Waliasing -Wampersand -Wconversion -Wsurprising -Wc-binding-type -Wintrinsics-std -Wtabs -Wintrinsic-shadow -Wline-truncation -Wtarget-lifetime -Wreal-q-constant")
+  #set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -fbacktrace -fcheck=all -ffpe-trap=zero,overflow,invalid -Wall -Wno-unused-dummy-argument")
 
   if(APPLE)
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fno-underscoring")
